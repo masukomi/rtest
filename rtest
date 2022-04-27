@@ -136,10 +136,13 @@ rescue
   false
 end
 
+def unescape(text)
+  text.gsub(ANSI_MATCHER, "")
+end
 def buffer_last_line(buffer)
   line = buffer.string.split("\n").last
   return nil unless line
-  line.gsub(ANSI_MATCHER, "")
+  unescape(line)
 end
 
 def definite_debugger_line(line)
@@ -339,21 +342,20 @@ def run_this(spec, update_file, retries = 0)
   # so... just gonna have to do without that unless
   # you, my brilliant reader, know a workaround.
 
-  output = output_buffer.string
-
+  output = unescape(output_buffer.string)
 
   if output.match(/^[A-Z]+[a-z]+\w+Error:/)
-    puts "⚠️ Problems encountered: \n\t#{output.split("\n").first(10).join("\n\t")}\n..."
+    puts "\n⚠️ Problems encountered: \n\t#{output.split("\n").first(10).join("\n\t")}\n..."
     # for whatever reason rspec sends SOME errors to standard out
     # not standard error
     exit 1
   elsif output.match(/(Bundler::GemNotFound|Bundler could not find compatible versions|bundler: command not found: rspec)/m)
     if output.match(/could not find compatible versions/m)
-      puts "Bundler issue you'll have to address..."
+      puts "\nBundler issue you'll have to address..."
       puts standard_error.split("\n")[0..20].join("\n")+"\n..."
       exit 1
     end
-    puts "You need to bundle"
+    puts "\nYou need to bundle"
     puts "I'll do that for you."
     if retries == 0
       bundle_output, bundle_standard_error, bundle_status = Open3.capture3( "bundle install")
