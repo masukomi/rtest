@@ -18,7 +18,21 @@ Things you can do with RTest:
 * get the path to the file that contained a specific failure
   - `rtest file <n>` where `n` is the number of the failed test.
 
-Run `tester --help`
+Run `tester --help` for all the options.
+ 
+## Installation 
+
+### macOS with Homebrew
+
+```
+brew tap masukomi/homebrew-apps
+brew install days_progress
+```
+
+### everything else
+Clone this repo.  
+Add the `rtest` executable to your path.
+
 
 ## Usage
 
