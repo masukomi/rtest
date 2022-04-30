@@ -178,11 +178,15 @@ def wait_for_read(reader, pid, last_line, counter = 0)
 end
 
 def read_into_buffer(reader, buffer)
-  loop do
-    break unless reader.ready?
-    char = reader.read(1)
-    break if char.nil?
-    buffer.putc(char)
+  begin
+    loop do
+      break unless reader.ready?
+      char = reader.read(1)
+      break if char.nil?
+      buffer.putc(char)
+    end
+  rescue Errno::EIO
+    # well, that was unexpected.
   end
   buffer
 end
