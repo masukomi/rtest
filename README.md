@@ -18,7 +18,7 @@ Things you can do with RTest:
 * get the path to the file that contained a specific failure
   - `rtest file <n>` where `n` is the number of the failed test.
 
-Run `tester --help` for all the options.
+Run `rtest --help` for all the options.
  
 ## Installation 
 
