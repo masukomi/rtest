@@ -85,6 +85,16 @@ rtest files
 EOL
 USAGE.freeze
 
+# SET UP THE COLORS
+ERROR_LINE_COLOR="\e[38;5;196m"
+FILE_HIGHLIGHT_COLOR="\e[38;5;7m"
+EXPECTED_LINE_COLOR="\e[32m"
+GOT_LINE_COLOR="\e[38;5;7m" #"\e[91m"
+LINE_NUMBER_COLOR="\e[38;5;214m" # was 100;33
+ERROR_HERE_LINE_COLOR="\e[38;5;7m" # "\e[100,37m"
+COLOR_RESET="\e[0m"
+
+
 
 # The regex to match ANSI codes
 # from https://github.com/piotrmurach/strings-ansi
@@ -198,27 +208,27 @@ def display_failures(failures)
 end
 
 def display_failure(failure, index)
-    puts "\n\e[31m#{index + 1}: #{failure["message"]}\e[0m\n"
+    puts "\n#{ERROR_LINE_COLOR}#{index + 1}: #{failure["message"]}#{COLOR_RESET}\n"
     puts printable_file_and_line_num(failure)
     puts failure["details"] if failure.has_key? "details"
 
-    puts "\t\t\e[32mexpected: #{failure["expected"]}\e[0m" if failure.has_key? "expected"
-    puts "\t\t\e[91mgot     : #{failure["got"]}\e[0m" if failure.has_key? "got"
+    puts "\t\t#{EXPECTED_LINE_COLOR}expected: #{failure["expected"]}#{COLOR_RESET}" if failure.has_key? "expected"
+    puts "\t\t#{GOT_LINE_COLOR}got     : #{failure["got"]}#{COLOR_RESET}" if failure.has_key? "got"
 
     puts "\n\t\tDiff:\n#{failure["diff"].join("\n\t\t")}" if failure.has_key? "diff"
 
 end
 def printable_file_and_line_num(failure)
   if failure["spec_file"]
-    line = "#{ failure["file"].nil? ? "\t" : ""}\e[100;37m#{failure["spec_file_full_path"]}\e[0m:\e[100;33m#{failure["spec_file_line_number"]}\e[0m"
+    line = "#{ failure["file"].nil? ? "\t" : ""}#{ERROR_HERE_LINE_COLOR}#{failure["spec_file_full_path"]}#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure["spec_file_line_number"]}#{COLOR_RESET}"
 
     if failure["file"]
       line = "\tFAILED SPEC: " + line
-      line += "\n\tERROR HERE : \e[100;37m#{failure["file_full_path"]}\e[0m:\e[100;33m#{failure["line_number"]}\e[0m"
+      line += "\n\tERROR HERE : #{ERROR_HERE_LINE_COLOR}#{failure["file_full_path"]}#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure["line_number"]}#{COLOR_RESET}"
     end
     line
   else
-    "\t\e[100;37m#{failure["file"]}\e[0m:\e[100;33m#{failure["line_number"]}\e[0m"
+    "\t#{ERROR_HERE_LINE_COLOR}#{failure["file"]}#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure["line_number"]}#{COLOR_RESET}"
   end
 end
 
@@ -244,7 +254,7 @@ def process_rspec_output(output)
       end
     else
       # in a failure, and past the initial line
-      details_match = /^\s+Failure\/Error:\s*(.*)/.match(line)
+      details_match = /^\s+(?:\d+(?:\.\d+)*\)\s+)Failure\/Error:\s*(.*)/.match(line)
 
       expected_match = /^\s+expected:\s+(.*)/.match(line)
 
@@ -348,14 +358,14 @@ def run_this(spec, update_file, retries = 0)
     # for whatever reason rspec sends SOME errors to standard out
     # not standard error
     exit 1
-  elsif output.match(/(Bundler::GemNotFound|Bundler could not find compatible versions|bundler: command not found: rspec)/m)
+  elsif output.match(/(Run `bundle install`|Bundler::GemNotFound|Bundler could not find compatible versions|bundler: command not found: rspec)/m)
     if output.match(/could not find compatible versions/m)
       puts "\nBundler issue you'll have to address..."
       puts standard_error.split("\n")[0..20].join("\n")+"\n..."
       exit 1
     end
     puts "\nYou need to bundle"
-    puts "I'll do that for you."
+    puts "I'll do that for you. Gimme a minute..."
     if retries == 0
       bundle_output, bundle_standard_error, bundle_status = Open3.capture3( "bundle install")
       if bundle_status.exitstatus == 0
