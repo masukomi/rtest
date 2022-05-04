@@ -105,7 +105,7 @@ ANSI_MATCHER = %r{
 }x.freeze
 
 
-NO_FAILURES_TEXT="✅ No failures."
+NO_FAILURES_TEXT="\n✅ No failures."
 
 PAST_RUN_FILENAME=".rtest.json"
 INPUT = ARGV.size > 0 ? ARGV[0].strip : nil
@@ -335,7 +335,6 @@ def run_this(spec, update_file, retries = 0)
   # They've made "interesting" choices about what goes where
   output_buffer = interactive_run_handler(run_line, StringIO.new(""))
 
-
   # Getting the exit code from PTY.spawn requires calling
   # Process.wait(pid)
   # but that just waits until it exits which will block,
@@ -371,7 +370,11 @@ def run_this(spec, update_file, retries = 0)
     else
       exit 2
     end
+  elsif output.match(/Could not locate Gemfile or \.bundle\/ directory/m)
+    puts "\n⚠️ Could not locate Gemfile or .bundle/ directory"
+    exit 3
   end
+
   new_run_data = process_rspec_output(output)
   update_record(new_run_data) if update_file
   new_run_data
@@ -528,6 +531,8 @@ elsif INPUT == "file" &&  /^\d+$/.match(ARGV[1].to_s)
   end
 elsif INPUT == "files"
   display_files(past_run_data)
+elsif /\.rb$/.match(INPUT)
+  puts "🛑 That's a ruby file, but not an rspec (*_spec.rb) file."
 elsif /^-{0,2}h(?:elp)?$/.match(INPUT)
   puts USAGE
 end
