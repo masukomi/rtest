@@ -238,23 +238,29 @@ def process_rspec_output(output)
   in_failure = false
   in_diff = false
   current_failure = {}
+  top_failure=""
+  in_sub_failure = false
   output_lines.each_with_index do | line, idx |
     if not in_failure
-      match_data =  /^  \d+\)\s+(.*)/.match(line)
+      match_data =  /^\s+\d+(\.\d+)*\)\s+(.*)/.match(line)
       if match_data
         # starting a new failure
         in_failure = true
-        unless current_failure.empty?
-          new_run_data['failures'] << current_failure
-          display_failure(current_failure, new_run_data['failures'].length - 1)
-        end
+        in_sub_failure = match_data[1].nil? ? false : true
+        # if ! in_sub_failure
+          unless current_failure.empty?
+            new_run_data['failures'] << current_failure
+            display_failure(current_failure, new_run_data['failures'].length - 1)
+          end
+        # end
+        top_failure = match_data[2]
         current_failure = {}
-        current_failure["message"] = match_data[1]
+        current_failure["message"] = match_data[2]
       # else, random crap we don't care about
       end
     else
       # in a failure, and past the initial line
-      details_match = /^\s+(?:\d+(?:\.\d+)*\)\s+)Failure\/Error:\s*(.*)/.match(line)
+      details_match = /^\s+(\d+(?:\.\d+)*\)\s+)?Failure\/Error:\s*(.*)/.match(line)
 
       expected_match = /^\s+expected:\s+(.*)/.match(line)
 
@@ -267,8 +273,22 @@ def process_rspec_output(output)
 
       diff_match = /^\s+Diff:\s*/.match(line)
 
-      if details_match
-        current_failure["details"] = details_match[1]
+      something_match = /^\s+\w+.*/.match(line)
+
+      finished_match = /^Finished in \d+\.\d+ seconds/.match(line)
+
+      if finished_match
+        in_sub_failure = false
+        in_failure=false
+      elsif details_match
+        if ! details_match[1].nil?
+          # we're in a sub-failure
+          in_sub_failure = true
+          current_failure = {} # reset
+          current_failure["message"] = "#{top_failure}\n\t#{details_match[2]}"
+        end
+
+        current_failure["details"] = details_match[2]
       elsif expected_match
         current_failure["expected"] = expected_match[1]
       elsif got_match
@@ -277,13 +297,19 @@ def process_rspec_output(output)
         current_failure["spec_file"] = spec_match[2]
         current_failure["spec_file_full_path"] = spec_match[1]
         current_failure["spec_file_line_number"] = spec_match[3]
+        top_failure = ""
         in_failure = false
+        in_sub_failure = false
       elsif trace_match and current_failure["file"].nil?
         in_diff = false
         current_failure["file"] = trace_match[2]
         current_failure["file_full_path"] = trace_match[1]
         current_failure["line_number"] = trace_match[3]
-        in_failure = false unless current_failure["spec_file"].nil?
+        unless current_failure["spec_file"].nil?
+          in_failure = false
+          in_sub_failure = false
+          top_failure = ""
+        end
       elsif diff_match && ! in_diff
         in_diff = true
         current_failure["diff"] = []
@@ -294,7 +320,17 @@ def process_rspec_output(output)
       elsif current_failure.has_key? "details"
         #we're somewhere between the Failure/Error line
         #and the stack trace
-        current_failure["details"] += "\n#{line}"
+        if ! is_ignorable_detail(line)
+          current_failure["details"] += "\n#{line}"
+        end
+      elsif in_sub_failure && ! something_match.nil?
+        if ! is_ignorable_detail(line)
+          if current_failure["details"]
+            current_failure["details"] += "\n#{line}"
+          else
+            current_failure["details"] = "\n#{line}"
+          end
+        end
       end
 
     end
@@ -453,6 +489,10 @@ def rerun_run_number(num, line_mod, past_run_data)
   else
     STDERR.puts("I don't seem to have data on run #{idx + 1}")
   end
+end
+
+def is_ignorable_detail(line)
+  !! /^\s+#\s+/.match(line)
 end
 
 # -------------------------
