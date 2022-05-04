@@ -225,10 +225,12 @@ def printable_file_and_line_num(failure)
     if failure["file"]
       line = "\tFAILED SPEC: " + line
       line += "\n\tERROR HERE : #{ERROR_HERE_LINE_COLOR}#{failure["file_full_path"]}#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure["line_number"]}#{COLOR_RESET}"
+    else
+      line = "\n\tERROR HERE : " + line
     end
     line
   else
-    "\t#{ERROR_HERE_LINE_COLOR}#{failure["file"]}#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure["line_number"]}#{COLOR_RESET}"
+    "\tERROR HERE : #{ERROR_HERE_LINE_COLOR}#{failure["file"]}#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure["line_number"]}#{COLOR_RESET}"
   end
 end
 
