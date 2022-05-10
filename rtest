@@ -302,6 +302,7 @@ def process_rspec_output(output)
         top_failure = ""
         in_failure = false
         in_sub_failure = false
+        in_diff = false
       elsif trace_match and current_failure["file"].nil?
         in_diff = false
         current_failure["file"] = trace_match[2]
