@@ -168,7 +168,7 @@ def wait_for_read(reader, pid, last_line, counter = 0)
   # counter is a count of times through this with
   # potential debugger pause lines
   running = process_running?(pid)
-  if running && ! reader.ready?
+  while running && ! reader.ready?
     putc "."
     return :debugger if definite_debugger_line(last_line)
     if last_line && potential_debugger_pause(last_line)
@@ -179,8 +179,8 @@ def wait_for_read(reader, pid, last_line, counter = 0)
     #   puts "last_line: #{last_line}" unless last_line.nil?
     end
     sleep 0.2
-    wait_for_read(reader, pid, last_line, counter)
-  elsif running
+  end
+  if running
     :running
   else
     :ready
