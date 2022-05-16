@@ -270,7 +270,7 @@ def process_rspec_output(output)
       got_match = /^\s+(?:got|received):\s+(.*)/.match(line)
 
       trace_match = /^\s+#\s+(.*?\/(.*?\.rb)):(\d+):in /.match(line)
-      spec_match = /^\s+#\s+((?:\.\/)?spec\/.*?\/(.*?\.rb)):(\d+):in /.match(line)
+      spec_match = /^\s+#\s+((?:\.\/)?spec\/.*?\/(.*?_spec\.rb)):(\d+):in /.match(line)
       # ^^^ https://regexper.com/#%5E%5Cs%2B%23%5Cs%2B%28%28%3F%3A%5C.%5C%2F%29%3Fspec%5C%2F.*%3F%5C%2F%28.*%3F%5C.rb%29%29%3A%28%5Cd%2B%29%3Ain%20
 
       diff_match = /^\s+Diff:\s*/.match(line)
@@ -303,7 +303,7 @@ def process_rspec_output(output)
         in_failure = false
         in_sub_failure = false
         in_diff = false
-      elsif trace_match and current_failure["file"].nil?
+      elsif trace_match and (current_failure["file"] || current_failure["spec_file"])
         in_diff = false
         current_failure["file"] = trace_match[2]
         current_failure["file_full_path"] = trace_match[1]
@@ -313,6 +313,10 @@ def process_rspec_output(output)
           in_sub_failure = false
           top_failure = ""
         end
+      elsif trace_match
+        current_failure["file"] = trace_match[2]
+        current_failure["file_full_path"] = trace_match[1]
+        current_failure["line_number"] = trace_match[3]
       elsif diff_match && ! in_diff
         in_diff = true
         current_failure["diff"] = []
