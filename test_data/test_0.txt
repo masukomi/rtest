@@ -1,0 +1,65 @@
+Run options: exclude {:flaky=>true}
+
+Randomized with seed 1408
+
+App Name
+/Users/kayrhodes/.asdf/installs/ruby/2.7.4/lib/ruby/gems/2.7.0/gems/capybara-screenshot-1.0.25/lib/capybara-screenshot.rb:88: warning: instance variable @pruned_previous_screenshots not initialized
+  Set App Name as foo type in store info config [desktop] (FAILED - 1)
+  HTML screenshot: /Users/kayrhodes/workspace/app_name/TheApp/e2e/tmp/capybara/screenshot_set-app-name-as-foo-type-in-store-info-config-desktop_2022-05-16-15-50-59.792.html
+  Image screenshot: /Users/kayrhodes/workspace/app_name/TheApp/e2e/tmp/capybara/screenshot_set-app-name-as-foo-type-in-store-info-config-desktop_2022-05-16-15-50-59.792.png
+  Ensure App Name is not an available foo type for Kiosks [desktop]
+
+Failures:
+
+  1) App Name Set App Name as foo type in store info config
+     Got 0 failures and 2 other errors:
+
+     1.1) Failure/Error: super(options, &block)
+
+          Selenium::WebDriver::Error::UnknownError:
+            unknown error: net::ERR_CONNECTION_REFUSED
+              (Session info: headless chrome=101.0.4951.64)
+          # 0   chromedriver                        0x000000010cd7d2c9 chromedriver + 5120713
+          # 1   chromedriver                        0x000000010cd0be33 chromedriver + 4656691
+          # 2   chromedriver                        0x000000010c8fb158 chromedriver + 393560
+          # 3   chromedriver                        0x000000010c8f4e75 chromedriver + 368245
+          # 4   chromedriver                        0x000000010c8e681d chromedriver + 309277
+          # 5   chromedriver                        0x000000010c8e75cd chromedriver + 312781
+          # 6   chromedriver                        0x000000010c8e6a87 chromedriver + 309895
+          # 7   chromedriver                        0x000000010c8e5ff7 chromedriver + 307191
+          # 8   chromedriver                        0x000000010c8e4efa chromedriver + 302842
+          # 9   chromedriver                        0x000000010c8e52a2 chromedriver + 303778
+          # 10  chromedriver                        0x000000010c8fcc6a chromedriver + 400490
+          # 11  chromedriver                        0x000000010c9606df chromedriver + 808671
+          # 12  chromedriver                        0x000000010c94d482 chromedriver + 730242
+          # 13  chromedriver                        0x000000010c95ff41 chromedriver + 806721
+          # 14  chromedriver                        0x000000010c94d373 chromedriver + 729971
+          # 15  chromedriver                        0x000000010c923609 chromedriver + 558601
+          # 16  chromedriver                        0x000000010c924635 chromedriver + 562741
+          # 17  chromedriver                        0x000000010cd4fb1d chromedriver + 4934429
+          # 18  chromedriver                        0x000000010cd54295 chromedriver + 4952725
+          # 19  chromedriver                        0x000000010cd593cf chromedriver + 4973519
+          # 20  chromedriver                        0x000000010cd54cba chromedriver + 4955322
+          # 21  chromedriver                        0x000000010cd2f37c chromedriver + 4801404
+          # 22  chromedriver                        0x000000010cd6ec68 chromedriver + 5061736
+          # 23  chromedriver                        0x000000010cd6edef chromedriver + 5062127
+          # 24  chromedriver                        0x000000010cd845e5 chromedriver + 5150181
+          # 25  libsystem_pthread.dylib             0x00007ff8006bd4e1 _pthread_start + 125
+          # 26  libsystem_pthread.dylib             0x00007ff8006b8f6b thread_start + 15
+          # ./spec/support/site_prism_pages/consumer/store.rb:166:in `load'
+          # ./spec/features/site_prism_features/admin/store/settings/app_name_spec.rb:27:in `block (2 levels) in <top (required)>'
+
+     1.2) Failure/Error: raise JavascriptConsoleError, error_message
+
+          JavascriptConsoleError:
+            https://app_name1601064859.zendesk.com/embeddable/config - Failed to load resource: the server responded with a status of 404 ()
+          # ./spec/support/capybara.rb:223:in `block (2 levels) in <top (required)>'
+
+Finished in 18.66 seconds (files took 3.43 seconds to load)
+2 examples, 1 failure
+
+Failed examples:
+
+rspec ./spec/features/site_prism_features/admin/store/settings/app_name_spec.rb:14 # App Name Set App Name as foo type in store info config
+
+Randomized with seed 1408
