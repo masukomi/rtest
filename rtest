@@ -93,7 +93,7 @@ GOT_LINE_COLOR="\e[38;5;7m" #"\e[91m"
 LINE_NUMBER_COLOR="\e[38;5;214m" # was 100;33
 ERROR_HERE_LINE_COLOR="\e[1;38;5;7m" # "\e[100,37m"
 COLOR_RESET="\e[0m"
-
+DETAIL_LINE_COLOR="\e[38;2;255;140;0m"
 
 
 # The regex to match ANSI codes
@@ -207,10 +207,26 @@ def display_failures(failures)
   end
 end
 
+def reformat_failure_details(details)
+  details_lines = details.split("\n")
+  if details_lines.size > 2
+    # 2 because it's typically
+    # [0]<error line>\n[1]<blank line>\n[2]<error message>
+    (2..(details_lines.size - 1) ).each do | idx |
+      details_lines[idx] = "\t►#{details_lines[idx]}"
+    end
+  end
+  "\t" + details_lines.join("\n")
+end
+
 def display_failure(failure, index)
     puts "\n#{ERROR_LINE_COLOR}#{index + 1}: #{failure["message"]}#{COLOR_RESET}\n"
     puts printable_file_and_line_num(failure)
-    puts failure["details"] if failure.has_key? "details"
+
+    if ! failure["details"].nil?
+      formatted_details = reformat_failure_details(failure["details"])
+      puts "#{DETAIL_LINE_COLOR}#{formatted_details}#{COLOR_RESET}"
+    end
 
     puts "\t\t#{EXPECTED_LINE_COLOR}expected: #{failure["expected"]}#{COLOR_RESET}" if failure.has_key? "expected"
     puts "\t\t#{GOT_LINE_COLOR}got     : #{failure["got"]}#{COLOR_RESET}" if failure.has_key? "got"
@@ -221,6 +237,8 @@ end
 def printable_file_and_line_num(failure)
   if failure["spec_file"]
     line = "#{ failure["file"].nil? ? "\t" : ""}#{ERROR_HERE_LINE_COLOR}#{failure["spec_file_full_path"]}#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure["spec_file_line_number"]}#{COLOR_RESET}"
+	# details on fd and what it takes can be found here
+	# https://github.com/sharkdp/fd#readme
 
     if failure["file"]
       line = "\tFAILED SPEC: " + line

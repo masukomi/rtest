@@ -1,0 +1,33 @@
+Run options:
+  include {:focus=>true}
+  exclude {:flaky=>true}
+
+Randomized with seed 53857
+
+Test Thing
+  without existing user
+/Users/kayrhodes/.asdf/installs/ruby/2.7.4/lib/ruby/gems/2.7.0/gems/capybara-screenshot-1.0.25/lib/capybara-screenshot.rb:88: warning: instance variable @pruned_previous_screenshots not initialized
+[31m    Sign up for and complete delivery transaction with testThing [desktop] (FAILED - 1)[0m
+  [0;33mHTML screenshot: /Users/kayrhodes/workspace/client/TheRepo/e2e/tmp/capybara/screenshot_sign-up-for-and-complete-delivery-transaction-with-product-desktop_2022-05-23-11-00-36.603.html[0m
+  [0;33mImage screenshot: /Users/kayrhodes/workspace/client/TheRepo/e2e/tmp/capybara/screenshot_sign-up-for-and-complete-delivery-transaction-with-product-desktop_2022-05-23-11-00-36.603.png[0m
+
+Failures:
+
+  1) Test Thing without existing user Sign up for and complete delivery transaction with testThing
+     [31mFailure/Error: [0m@auth_window = window_opened_by { 3rd_party_frame.sign_in_button.click }[0m
+     [31m[0m
+     [31mCapybara::WindowError:[0m
+     [31m  block passed to #window_opened_by opened 0 windows instead of 1[0m
+     [36m# ./spec/features/site_prism_features/consumer/test_thing_spec.rb:76:in `block in select_oauth_3rd_party'[0m
+     [36m# ./spec/features/site_prism_features/consumer/test_thing_spec.rb:68:in `select_oauth_3rd_party'[0m
+     [36m# ./spec/features/site_prism_features/consumer/test_thing_spec.rb:227:in `block (3 levels) in <top (required)>'[0m
+
+Finished in 28.62 seconds (files took 3.35 seconds to load)
+[31m1 example, 1 failure[0m
+
+Failed examples:
+
+[31mrspec ./spec/features/site_prism_features/consumer/test_thing_spec.rb:188[0m [36m# Test Thing without existing user Sign up for and complete delivery transaction with testThing[0m
+
+Randomized with seed 53857
+
