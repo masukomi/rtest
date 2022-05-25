@@ -82,6 +82,10 @@ rtest file <number>
 
 rtest files
   outputs a list of all the files+line numbers of failing tests
+
+rtest -v <any prior command>
+  instead of "marching ants" verbose mode will print out the names
+  of classes under test as their respective tests are being run.
 EOL
 USAGE.freeze
 
@@ -118,7 +122,12 @@ ANSI_MATCHER = %r{
 NO_FAILURES_TEXT="\n✅ No failures."
 
 PAST_RUN_FILENAME=".rtest.json"
-INPUT = ARGV.size > 0 ? ARGV[0].strip : nil
+VERBOSE = ARGV.size > 0 && ARGV[0].strip == "-v"
+if ! VERBOSE
+  INPUT = ARGV.size > 0 ? ARGV[0].strip : nil
+else
+  INPUT = ARGV.size > 1 ? ARGV[1].strip : ni
+end
 past_run_data = {}
 # looks like
 # {
@@ -150,9 +159,10 @@ def unescape(text)
   text.gsub(ANSI_MATCHER, "")
 end
 def buffer_last_line(buffer)
-  line = buffer.string.split("\n").last
-  return nil unless line
-  unescape(line)
+  last_line = buffer.string.split("\n").last
+  return nil unless last_line
+  # $stderr.puts("XXX last_line (#{lines.size}): '#{unescape(last_line).strip}'\n")
+  unescape(last_line)
 end
 
 def definite_debugger_line(line)
@@ -169,14 +179,11 @@ def wait_for_read(reader, pid, last_line, counter = 0)
   # potential debugger pause lines
   running = process_running?(pid)
   while running && ! reader.ready?
-    putc "."
+    putc "." unless VERBOSE #ironically
     return :debugger if definite_debugger_line(last_line)
     if last_line && potential_debugger_pause(last_line)
       counter += 1
       return :debugger if counter > 4
-    # else
-    #   putc last_line.nil? ? "-" : "x"
-    #   puts "last_line: #{last_line}" unless last_line.nil?
     end
     sleep 0.2
   end
@@ -188,13 +195,30 @@ def wait_for_read(reader, pid, last_line, counter = 0)
 end
 
 def read_into_buffer(reader, buffer)
+  temp_buffer = StringIO.new("")
   loop do
     break unless reader.ready?
     char = reader.read(1)
     break if char.nil?
-    buffer.putc(char)
+    temp_buffer.putc(char)
   end
-  buffer
+
+  temp_string = unescape(temp_buffer.string)
+  if temp_string.length > 0
+    if VERBOSE && temp_string.strip.length > 0
+      test_names = extract_test_names(temp_string)
+      if test_names.size > 0
+        puts "\t⤏ #{test_names.join("\n\t⤏ ")}"
+      end
+    end
+
+    buffer << temp_string
+  end
+end
+
+def extract_test_names(string)
+  lines = string.split("\n")
+  lines.select{|l| /^[A-Z][\w\d]*(?:::[A-Z][\w\d]*)*\s*$/.match(l)}
 end
 
 ################
@@ -401,7 +425,11 @@ def interactive_run_handler(run_line, output_buffer)
 end
 
 def run_this(spec, update_file, retries = 0)
-  run_line ="bundle exec rspec #{spec} 2>&1"
+  # in a successful run there's nothing in STDERR (2)
+  # it's all STDOUT (1)
+
+  run_line ="bundle exec rspec #{VERBOSE ? '--format=documentation' : ''} #{spec} 2>&1"
+  # $stderr.puts("XXX running: #{run_line}")
   # Redirecting STDERR to STDOUT because rspec is...
   # They've made "interesting" choices about what goes where
   output_buffer = interactive_run_handler(run_line, StringIO.new(""))
@@ -413,6 +441,7 @@ def run_this(spec, update_file, retries = 0)
   # you, my brilliant reader, know a workaround.
 
   output = unescape(output_buffer.string)
+  # $stderr.puts("XXX escaped output: \n#{output}")
 
   if output.match(/^[A-Z]+[a-z]+\w+Error:/)
     puts "\n⚠️ Problems encountered: \n\t#{output.split("\n").first(10).join("\n\t")}\n..."
