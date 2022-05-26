@@ -83,9 +83,17 @@ rtest file <number>
 rtest files
   outputs a list of all the files+line numbers of failing tests
 
+VERBOSE MODE
+
 rtest -v <any prior command>
   instead of "marching ants" verbose mode will print out the names
   of classes under test as their respective tests are being run.
+
+RTEST_AUTO_VERBOSE
+  rtest will watch for an RTEST_AUTO_VERBOSE environment varible.
+  If this is set to a number > 0 rtest will automatically turn on
+  verbose mode after that many seconds.
+
 EOL
 USAGE.freeze
 
@@ -128,6 +136,9 @@ if ! VERBOSE
 else
   INPUT = ARGV.size > 1 ? ARGV[1].strip : ni
 end
+START=Time.now.to_i
+AUTO_VERBOSE=ENV['RTEST_AUTO_VERBOSE'].to_i
+
 past_run_data = {}
 # looks like
 # {
@@ -148,6 +159,19 @@ past_run_data = {}
 # terminal interactivity stuff
 # in case you use binding.pry or byebug
 # type things
+def currently_verbose?
+  @current_verboseness_state ||= VERBOSE
+  return true if @current_verboseness_state
+  if AUTO_VERBOSE > 0 && (Time.now.to_i - START) >= AUTO_VERBOSE
+    if @current_verboseness_state == false
+      puts "\nℹ️  Auto-enabling \"Verbose mode\" after #{AUTO_VERBOSE} seconds.\n"
+      @current_verboseness_state = true
+    end
+    return true
+  end
+  false
+end
+
 def process_running?(pid)
   Process.getpgid(pid)
   true # or boom
@@ -179,7 +203,7 @@ def wait_for_read(reader, pid, last_line, counter = 0)
   # potential debugger pause lines
   running = process_running?(pid)
   while running && ! reader.ready?
-    putc "." unless VERBOSE #ironically
+    putc "." unless currently_verbose? #ironically
     return :debugger if definite_debugger_line(last_line)
     if last_line && potential_debugger_pause(last_line)
       counter += 1
@@ -205,7 +229,7 @@ def read_into_buffer(reader, buffer)
 
   temp_string = unescape(temp_buffer.string)
   if temp_string.length > 0
-    if VERBOSE && temp_string.strip.length > 0
+    if currently_verbose? && temp_string.strip.length > 0
       test_names = extract_test_names(temp_string)
       if test_names.size > 0
         puts "\t⤏ #{test_names.join("\n\t⤏ ")}"
@@ -427,8 +451,9 @@ end
 def run_this(spec, update_file, retries = 0)
   # in a successful run there's nothing in STDERR (2)
   # it's all STDOUT (1)
+  verbosable = VERBOSE || AUTO_VERBOSE > 0
 
-  run_line ="bundle exec rspec #{VERBOSE ? '--format=documentation' : ''} #{spec} 2>&1"
+  run_line ="bundle exec rspec #{verbosable ? '--format=documentation' : ''} #{spec} 2>&1"
   # $stderr.puts("XXX running: #{run_line}")
   # Redirecting STDERR to STDOUT because rspec is...
   # They've made "interesting" choices about what goes where
