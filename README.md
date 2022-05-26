@@ -7,6 +7,9 @@ Things you can do with RTest:
 
 * easily see the line of code that failed and the line of your spec that failed.
   - more focused test output
+  - radically more focused test output
+  - no more wading through hundreds of lines of stuff that doesn't
+    help you.
 * quickly see a numbered list of what failed on your last run
   - `rtest`
 * trivially rerun a past failure
@@ -26,7 +29,7 @@ Run `rtest --help` for all the options.
 
 ```
 brew tap masukomi/homebrew-apps
-brew install days_progress
+brew install rtest
 ```
 
 ### everything else
