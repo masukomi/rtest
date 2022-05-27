@@ -3,6 +3,19 @@
 An RSpec wrapper that cuts down on the noisy output,
 and makes it easier to re-run failing tests.
 
+### Why Use It? 
+I'll answer that with 2 pictures. I've added 5 failures into the multipart-post gem and then run the full test suite. The 1st image is `rspec`'s output. The 2nd image is `rtest`'s output. It's still running the same `rspec`, it's just trimming the fat from the output and making it more readable and clear. 
+
+#### RSpec output
+![example rspec output](https://github.com/masukomi/rtest/blob/example_images/docs/images/example_rspec_output.png?raw=true)  
+
+#### rtest output
+This is `rtest`'s output for the exact same `rspec` run.
+
+![example rtest output](https://github.com/masukomi/rtest/blob/example_images/docs/images/example_rtest_output.png?raw=true)
+
+
+
 Things you can do with RTest:
 
 * easily see the line of code that failed and the line of your spec that failed.
