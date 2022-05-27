@@ -35,6 +35,8 @@ Things you can do with RTest:
   - `rtest file <n>` where `n` is the number of the failed test.
 
 Run `rtest --help` for all the options.
+
+Or [view the full usage docs here in the source](https://github.com/masukomi/rtest/blob/main/rtest#L32).
  
 ## Installation 
 
