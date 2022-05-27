@@ -20,6 +20,10 @@ cp rtest $version_dir/
 tar -czf $version_dir.tgz $version_dir
 rm -rf $version_dir
 
+# reset the version number
+perl -pi -e "s/$1/VERSION_NUMBER_HERE/" rtest
+
+
 echo "here's your SHA for homebrew"
 shasum -a 256 $version_dir.tgz
 
