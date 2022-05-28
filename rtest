@@ -10,12 +10,14 @@
 #
 require 'json'
 require 'open3'
+require 'optparse'
+require 'tempfile'
 
 # in case you use byebug or binding.pry
-require 'pty'
-require 'io/wait'
-require 'stringio'
 require 'expect'
+require 'io/wait'
+require 'pty'
+require 'stringio'
 
 
 USAGE=<<~EOL
@@ -94,6 +96,17 @@ RTEST_AUTO_VERBOSE
   If this is set to a number > 0 rtest will automatically turn on
   verbose mode after that many seconds.
 
+RTEST DEVELOPERS
+
+rtest [-t<TEST_FILE_PATH>|--test=<TEST_FILE_PATH>]
+  this will specify a test file that will be used for input
+  instead of running rspec.
+
+  It is expected that it will be paired with a file of the same
+  name but with the _expected_output suffix. For example:
+
+  test_0.txt should have a corresponding test_0_expected_output.txt
+
 EOL
 USAGE.freeze
 
@@ -130,14 +143,35 @@ ANSI_MATCHER = %r{
 NO_FAILURES_TEXT="\n✅ No failures."
 
 PAST_RUN_FILENAME=".rtest.json"
-VERBOSE = ARGV.size > 0 && ARGV[0].strip == "-v"
-if ! VERBOSE
-  INPUT = ARGV.size > 0 ? ARGV[0].strip : nil
+
+@options = {}
+OptionParser.new do |parser|
+  parser.banner = "Usage: example.rb [options]"
+
+  parser.on("-v", "--verbose", "Run verbosely") do |v|
+    @options[:verbose] = v
+  end
+
+  parser.on("-tTEST_FILE", "--test=TEST_FILE", "path to test file") do |tf|
+    @options[:test_file] = tf
+    @options[:expected_output_file] = tf.sub(/\.txt$/, "_expected_output.txt")
+  end
+
+  parser.on("-aSECONDS", "--auto-verbose=SECONDS", "Switch to verbose mode if run takes more than SECONDS") do | s |
+    @options[:auto_verbose_seconds] = s.to_i
+  end
+end.parse!
+
+
+VERBOSE = @options.has_key? :verbose
+if @options.has_key?(:auto_verbose_seconds)
+  AUTO_VERBOSE = @options[:auto_verbose_seconds]
 else
-  INPUT = ARGV.size > 1 ? ARGV[1].strip : ni
+  AUTO_VERBOSE = ENV['RTEST_AUTO_VERBOSE'].to_i
 end
+TEST_MODE = @options.has_key? :test_file
+
 START=Time.now.to_i
-AUTO_VERBOSE=ENV['RTEST_AUTO_VERBOSE'].to_i
 
 past_run_data = {}
 # looks like
@@ -574,18 +608,69 @@ def is_ignorable_detail(line)
   !! /^\s+#\s+/.match(line)
 end
 
+def with_captured_stdout
+  original_stdout = $stdout  # capture previous value of $stdout
+  $stdout = StringIO.new     # assign a string buffer to $stdout
+  yield                      # perform the body of the user code
+  $stdout.string             # return the contents of the string buffer
+ensure
+  $stdout = original_stdout  # restore $stdout to its previous value
+end
+
+
+
 # -------------------------
 
 past_run_data = {"failures" => []}
-if File.exist? PAST_RUN_FILENAME
+
+if File.exist?(PAST_RUN_FILENAME) && ! TEST_MODE
   begin
-  past_run_data = JSON.parse(File.read(PAST_RUN_FILENAME))
+    past_run_data = JSON.parse(File.read(PAST_RUN_FILENAME))
   rescue StandardError => e
     STDERR.puts("problem parsing #{PAST_RUN_FILENAME}: #{e.message}")
   end
 end
 
-if INPUT.nil?
+if TEST_MODE
+  if ! File.exist? @options[:test_file]
+    STDERR.puts "Unable to find test file: #{@options[:test_file]}"
+    exit 1
+  end
+  if ! File.exist? @options[:expected_output_file]
+    STDERR.puts "Unable to find expected test output file: #{@options[:expected_output_file]}"
+    exit 1
+  end
+  generated_output = with_captured_stdout do
+    process_rspec_output(File.read(@options[:test_file]))
+  end
+  if generated_output != File.read(@options[:expected_output_file])
+    tempfile = Tempfile.new('foo')
+    tempfile.write(generated_output)
+    tempfile.close
+    STDERR.puts "Output didn't match expectations. Diff below"
+    STDERR.puts "< == expected output"
+    STDERR.puts "> == actual output"
+    STDERR.puts "--------------------------------------------------------"
+    STDERR.puts `diff #{@options[:expected_output_file]} #{tempfile.path}`
+    STDERR.puts "--------------------------------------------------------"
+    STDERR.puts "\n Do you want to save the tempfile? [y|N]: "
+
+    response = gets.chomp.downcase
+
+    if response != "y"
+      tempfile.unlink
+      exit 0
+    else
+      temp_copy = "actual_test_output.txt"
+      `cp #{tempfile.path} #{temp_copy}`
+      STDERR.puts "Tempfile saved. It's at: #{temp_copy}"
+      tempfile.unlink
+      exit 1
+    end
+  end
+
+
+elsif INPUT.nil?
   display_last_run(past_run_data)
 elsif /.*_spec.rb(:\d+)?$/.match(INPUT) \
   || INPUT=="all" \
