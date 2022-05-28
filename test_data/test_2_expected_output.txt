@@ -1,0 +1,66 @@
+
+1: Net::HTTP::Post::Multipart test_form_multipart_body
+
+	ERROR HERE : 	./spec/net/http/post/multipart_spec.rb:65
+	File.open(TEMP_FILE, 'w') { |f| f << '1234567890' }
+     
+	►     NameError:
+	►       uninitialized constant TEMP_FILE
+	►     
+	►           File.open(TEMP_FILE, 'w') { |f| f << '1234567890' }
+	►                     ^^^^^^^^^
+
+2: Net::HTTP::Post::Multipart test_form_multipart_body_with_stringio
+
+	ERROR HERE : 	./spec/net/http/post/multipart_spec.rb:73
+	@io = Multipart::Post::UploadIO.new @io, 'text/plain', TEMP_FILE
+     
+	►     NameError:
+	►       uninitialized constant TEMP_FILE
+	►     
+	►           @io = Multipart::Post::UploadIO.new @io, 'text/plain', TEMP_FILE
+	►                                                                  ^^^^^^^^^
+
+3: Net::HTTP::Post::Multipart test_form_multiparty_body_with_parts_headers
+
+	ERROR HERE : 	./spec/net/http/post/multipart_spec.rb:79
+	@io = Multipart::Post::UploadIO.new @io, 'text/plain', TEMP_FILE
+     
+	►     NameError:
+	►       uninitialized constant TEMP_FILE
+	►     
+	►           @io = Multipart::Post::UploadIO.new @io, 'text/plain', TEMP_FILE
+	►                                                                  ^^^^^^^^^
+
+4: Net::HTTP::Post::Multipart test_form_multipart_body_with_array_value
+
+	ERROR HERE : 	./spec/net/http/post/multipart_spec.rb:94
+	File.open(TEMP_FILE, 'w') { |f| f << '1234567890' }
+     
+	►     NameError:
+	►       uninitialized constant TEMP_FILE
+	►     
+	►           File.open(TEMP_FILE, 'w') { |f| f << '1234567890' }
+	►                     ^^^^^^^^^
+
+5: Net::HTTP::Post::Multipart test_form_multipart_body_with_arrayparam
+
+	ERROR HERE : 	./spec/net/http/post/multipart_spec.rb:112
+	File.open(TEMP_FILE, 'w') { |f| f << '1234567890' }
+     
+	►     NameError:
+	►       uninitialized constant TEMP_FILE
+	►     
+	►           File.open(TEMP_FILE, 'w') { |f| f << '1234567890' }
+	►                     ^^^^^^^^^
+
+6: Net::HTTP::Put::Multipart test_form_multipart_body_put
+
+	ERROR HERE : 	./spec/net/http/post/multipart_spec.rb:123
+	File.open(TEMP_FILE, 'w') { |f| f << '1234567890' }
+     
+	►     NameError:
+	►       uninitialized constant TEMP_FILE
+	►     
+	►           File.open(TEMP_FILE, 'w') { |f| f << '1234567890' }
+	►                     ^^^^^^^^^

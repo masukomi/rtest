@@ -1,0 +1,337 @@
+
+Net::HTTP::Post::Multipart
+[31m  test_form_multipart_body (FAILED - 1)[0m
+[31m  test_form_multipart_body_with_stringio (FAILED - 2)[0m
+[31m  test_form_multiparty_body_with_parts_headers (FAILED - 3)[0m
+[31m  test_form_multipart_body_with_array_value (FAILED - 4)[0m
+[31m  test_form_multipart_body_with_arrayparam (FAILED - 5)[0m
+
+Net::HTTP::Put::Multipart
+[31m  test_form_multipart_body_put (FAILED - 6)[0m
+
+Failures:
+
+  1) Net::HTTP::Post::Multipart test_form_multipart_body
+     [31mFailure/Error: File.open(TEMP_FILE, 'w') { |f| f << '1234567890' }[0m
+     [31m[0m
+     [31mNameError:[0m
+     [31m  uninitialized constant TEMP_FILE[0m
+     [31m[0m
+     [31m      File.open(TEMP_FILE, 'w') { |f| f << '1234567890' }[0m
+     [31m                ^^^^^^^^^[0m
+     [36m# ./spec/net/http/post/multipart_spec.rb:65:in `block (2 levels) in <top (required)>'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:263:in `instance_exec'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:263:in `block in run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:511:in `block in with_around_and_singleton_context_hooks'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:468:in `block in with_around_example_hooks'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/hooks.rb:486:in `block in run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/hooks.rb:624:in `run_around_example_hooks_for'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/hooks.rb:486:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:468:in `with_around_example_hooks'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:511:in `with_around_and_singleton_context_hooks'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:259:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example_group.rb:646:in `block in run_examples'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example_group.rb:642:in `map'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example_group.rb:642:in `run_examples'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example_group.rb:607:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:121:in `block (3 levels) in run_specs'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:121:in `map'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:121:in `block (2 levels) in run_specs'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/configuration.rb:2068:in `with_suite_hooks'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:116:in `block in run_specs'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/reporter.rb:74:in `report'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:115:in `run_specs'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:89:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:71:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:45:in `invoke'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/exe/rspec:4:in `<top (required)>'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/bin/rspec:25:in `load'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/bin/rspec:25:in `<top (required)>'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli/exec.rb:58:in `load'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli/exec.rb:58:in `kernel_load'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli/exec.rb:23:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli.rb:484:in `exec'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/vendor/thor/lib/thor/command.rb:27:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/vendor/thor/lib/thor/invocation.rb:127:in `invoke_command'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/vendor/thor/lib/thor.rb:392:in `dispatch'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli.rb:31:in `dispatch'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/vendor/thor/lib/thor/base.rb:485:in `start'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli.rb:25:in `start'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/bundler-2.3.7/libexec/bundle:48:in `block in <top (required)>'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/friendly_errors.rb:103:in `with_friendly_errors'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/bundler-2.3.7/libexec/bundle:36:in `<top (required)>'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/bin/bundle:25:in `load'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/bin/bundle:25:in `<main>'[0m
+
+  2) Net::HTTP::Post::Multipart test_form_multipart_body_with_stringio
+     [31mFailure/Error: @io = Multipart::Post::UploadIO.new @io, 'text/plain', TEMP_FILE[0m
+     [31m[0m
+     [31mNameError:[0m
+     [31m  uninitialized constant TEMP_FILE[0m
+     [31m[0m
+     [31m      @io = Multipart::Post::UploadIO.new @io, 'text/plain', TEMP_FILE[0m
+     [31m                                                             ^^^^^^^^^[0m
+     [36m# ./spec/net/http/post/multipart_spec.rb:73:in `block (2 levels) in <top (required)>'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:263:in `instance_exec'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:263:in `block in run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:511:in `block in with_around_and_singleton_context_hooks'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:468:in `block in with_around_example_hooks'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/hooks.rb:486:in `block in run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/hooks.rb:624:in `run_around_example_hooks_for'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/hooks.rb:486:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:468:in `with_around_example_hooks'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:511:in `with_around_and_singleton_context_hooks'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:259:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example_group.rb:646:in `block in run_examples'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example_group.rb:642:in `map'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example_group.rb:642:in `run_examples'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example_group.rb:607:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:121:in `block (3 levels) in run_specs'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:121:in `map'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:121:in `block (2 levels) in run_specs'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/configuration.rb:2068:in `with_suite_hooks'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:116:in `block in run_specs'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/reporter.rb:74:in `report'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:115:in `run_specs'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:89:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:71:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:45:in `invoke'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/exe/rspec:4:in `<top (required)>'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/bin/rspec:25:in `load'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/bin/rspec:25:in `<top (required)>'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli/exec.rb:58:in `load'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli/exec.rb:58:in `kernel_load'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli/exec.rb:23:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli.rb:484:in `exec'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/vendor/thor/lib/thor/command.rb:27:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/vendor/thor/lib/thor/invocation.rb:127:in `invoke_command'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/vendor/thor/lib/thor.rb:392:in `dispatch'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli.rb:31:in `dispatch'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/vendor/thor/lib/thor/base.rb:485:in `start'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli.rb:25:in `start'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/bundler-2.3.7/libexec/bundle:48:in `block in <top (required)>'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/friendly_errors.rb:103:in `with_friendly_errors'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/bundler-2.3.7/libexec/bundle:36:in `<top (required)>'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/bin/bundle:25:in `load'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/bin/bundle:25:in `<main>'[0m
+
+  3) Net::HTTP::Post::Multipart test_form_multiparty_body_with_parts_headers
+     [31mFailure/Error: @io = Multipart::Post::UploadIO.new @io, 'text/plain', TEMP_FILE[0m
+     [31m[0m
+     [31mNameError:[0m
+     [31m  uninitialized constant TEMP_FILE[0m
+     [31m[0m
+     [31m      @io = Multipart::Post::UploadIO.new @io, 'text/plain', TEMP_FILE[0m
+     [31m                                                             ^^^^^^^^^[0m
+     [36m# ./spec/net/http/post/multipart_spec.rb:79:in `block (2 levels) in <top (required)>'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:263:in `instance_exec'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:263:in `block in run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:511:in `block in with_around_and_singleton_context_hooks'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:468:in `block in with_around_example_hooks'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/hooks.rb:486:in `block in run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/hooks.rb:624:in `run_around_example_hooks_for'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/hooks.rb:486:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:468:in `with_around_example_hooks'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:511:in `with_around_and_singleton_context_hooks'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:259:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example_group.rb:646:in `block in run_examples'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example_group.rb:642:in `map'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example_group.rb:642:in `run_examples'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example_group.rb:607:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:121:in `block (3 levels) in run_specs'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:121:in `map'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:121:in `block (2 levels) in run_specs'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/configuration.rb:2068:in `with_suite_hooks'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:116:in `block in run_specs'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/reporter.rb:74:in `report'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:115:in `run_specs'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:89:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:71:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:45:in `invoke'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/exe/rspec:4:in `<top (required)>'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/bin/rspec:25:in `load'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/bin/rspec:25:in `<top (required)>'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli/exec.rb:58:in `load'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli/exec.rb:58:in `kernel_load'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli/exec.rb:23:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli.rb:484:in `exec'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/vendor/thor/lib/thor/command.rb:27:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/vendor/thor/lib/thor/invocation.rb:127:in `invoke_command'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/vendor/thor/lib/thor.rb:392:in `dispatch'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli.rb:31:in `dispatch'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/vendor/thor/lib/thor/base.rb:485:in `start'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli.rb:25:in `start'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/bundler-2.3.7/libexec/bundle:48:in `block in <top (required)>'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/friendly_errors.rb:103:in `with_friendly_errors'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/bundler-2.3.7/libexec/bundle:36:in `<top (required)>'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/bin/bundle:25:in `load'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/bin/bundle:25:in `<main>'[0m
+
+  4) Net::HTTP::Post::Multipart test_form_multipart_body_with_array_value
+     [31mFailure/Error: File.open(TEMP_FILE, 'w') { |f| f << '1234567890' }[0m
+     [31m[0m
+     [31mNameError:[0m
+     [31m  uninitialized constant TEMP_FILE[0m
+     [31m[0m
+     [31m      File.open(TEMP_FILE, 'w') { |f| f << '1234567890' }[0m
+     [31m                ^^^^^^^^^[0m
+     [36m# ./spec/net/http/post/multipart_spec.rb:94:in `block (2 levels) in <top (required)>'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:263:in `instance_exec'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:263:in `block in run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:511:in `block in with_around_and_singleton_context_hooks'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:468:in `block in with_around_example_hooks'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/hooks.rb:486:in `block in run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/hooks.rb:624:in `run_around_example_hooks_for'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/hooks.rb:486:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:468:in `with_around_example_hooks'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:511:in `with_around_and_singleton_context_hooks'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:259:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example_group.rb:646:in `block in run_examples'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example_group.rb:642:in `map'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example_group.rb:642:in `run_examples'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example_group.rb:607:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:121:in `block (3 levels) in run_specs'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:121:in `map'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:121:in `block (2 levels) in run_specs'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/configuration.rb:2068:in `with_suite_hooks'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:116:in `block in run_specs'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/reporter.rb:74:in `report'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:115:in `run_specs'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:89:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:71:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:45:in `invoke'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/exe/rspec:4:in `<top (required)>'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/bin/rspec:25:in `load'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/bin/rspec:25:in `<top (required)>'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli/exec.rb:58:in `load'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli/exec.rb:58:in `kernel_load'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli/exec.rb:23:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli.rb:484:in `exec'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/vendor/thor/lib/thor/command.rb:27:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/vendor/thor/lib/thor/invocation.rb:127:in `invoke_command'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/vendor/thor/lib/thor.rb:392:in `dispatch'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli.rb:31:in `dispatch'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/vendor/thor/lib/thor/base.rb:485:in `start'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli.rb:25:in `start'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/bundler-2.3.7/libexec/bundle:48:in `block in <top (required)>'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/friendly_errors.rb:103:in `with_friendly_errors'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/bundler-2.3.7/libexec/bundle:36:in `<top (required)>'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/bin/bundle:25:in `load'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/bin/bundle:25:in `<main>'[0m
+
+  5) Net::HTTP::Post::Multipart test_form_multipart_body_with_arrayparam
+     [31mFailure/Error: File.open(TEMP_FILE, 'w') { |f| f << '1234567890' }[0m
+     [31m[0m
+     [31mNameError:[0m
+     [31m  uninitialized constant TEMP_FILE[0m
+     [31m[0m
+     [31m      File.open(TEMP_FILE, 'w') { |f| f << '1234567890' }[0m
+     [31m                ^^^^^^^^^[0m
+     [36m# ./spec/net/http/post/multipart_spec.rb:112:in `block (2 levels) in <top (required)>'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:263:in `instance_exec'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:263:in `block in run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:511:in `block in with_around_and_singleton_context_hooks'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:468:in `block in with_around_example_hooks'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/hooks.rb:486:in `block in run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/hooks.rb:624:in `run_around_example_hooks_for'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/hooks.rb:486:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:468:in `with_around_example_hooks'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:511:in `with_around_and_singleton_context_hooks'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:259:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example_group.rb:646:in `block in run_examples'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example_group.rb:642:in `map'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example_group.rb:642:in `run_examples'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example_group.rb:607:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:121:in `block (3 levels) in run_specs'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:121:in `map'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:121:in `block (2 levels) in run_specs'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/configuration.rb:2068:in `with_suite_hooks'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:116:in `block in run_specs'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/reporter.rb:74:in `report'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:115:in `run_specs'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:89:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:71:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:45:in `invoke'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/exe/rspec:4:in `<top (required)>'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/bin/rspec:25:in `load'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/bin/rspec:25:in `<top (required)>'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli/exec.rb:58:in `load'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli/exec.rb:58:in `kernel_load'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli/exec.rb:23:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli.rb:484:in `exec'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/vendor/thor/lib/thor/command.rb:27:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/vendor/thor/lib/thor/invocation.rb:127:in `invoke_command'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/vendor/thor/lib/thor.rb:392:in `dispatch'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli.rb:31:in `dispatch'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/vendor/thor/lib/thor/base.rb:485:in `start'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli.rb:25:in `start'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/bundler-2.3.7/libexec/bundle:48:in `block in <top (required)>'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/friendly_errors.rb:103:in `with_friendly_errors'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/bundler-2.3.7/libexec/bundle:36:in `<top (required)>'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/bin/bundle:25:in `load'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/bin/bundle:25:in `<main>'[0m
+
+  6) Net::HTTP::Put::Multipart test_form_multipart_body_put
+     [31mFailure/Error: File.open(TEMP_FILE, 'w') { |f| f << '1234567890' }[0m
+     [31m[0m
+     [31mNameError:[0m
+     [31m  uninitialized constant TEMP_FILE[0m
+     [31m[0m
+     [31m      File.open(TEMP_FILE, 'w') { |f| f << '1234567890' }[0m
+     [31m                ^^^^^^^^^[0m
+     [36m# ./spec/net/http/post/multipart_spec.rb:123:in `block (2 levels) in <top (required)>'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:263:in `instance_exec'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:263:in `block in run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:511:in `block in with_around_and_singleton_context_hooks'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:468:in `block in with_around_example_hooks'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/hooks.rb:486:in `block in run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/hooks.rb:624:in `run_around_example_hooks_for'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/hooks.rb:486:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:468:in `with_around_example_hooks'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:511:in `with_around_and_singleton_context_hooks'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example.rb:259:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example_group.rb:646:in `block in run_examples'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example_group.rb:642:in `map'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example_group.rb:642:in `run_examples'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/example_group.rb:607:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:121:in `block (3 levels) in run_specs'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:121:in `map'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:121:in `block (2 levels) in run_specs'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/configuration.rb:2068:in `with_suite_hooks'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:116:in `block in run_specs'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/reporter.rb:74:in `report'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:115:in `run_specs'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:89:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:71:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/lib/rspec/core/runner.rb:45:in `invoke'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/rspec-core-3.11.0/exe/rspec:4:in `<top (required)>'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/bin/rspec:25:in `load'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/bin/rspec:25:in `<top (required)>'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli/exec.rb:58:in `load'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli/exec.rb:58:in `kernel_load'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli/exec.rb:23:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli.rb:484:in `exec'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/vendor/thor/lib/thor/command.rb:27:in `run'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/vendor/thor/lib/thor/invocation.rb:127:in `invoke_command'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/vendor/thor/lib/thor.rb:392:in `dispatch'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli.rb:31:in `dispatch'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/vendor/thor/lib/thor/base.rb:485:in `start'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/cli.rb:25:in `start'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/bundler-2.3.7/libexec/bundle:48:in `block in <top (required)>'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/3.1.0/bundler/friendly_errors.rb:103:in `with_friendly_errors'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/lib/ruby/gems/3.1.0/gems/bundler-2.3.7/libexec/bundle:36:in `<top (required)>'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/bin/bundle:25:in `load'[0m
+     [36m# /Users/masukomi/.rbenv/versions/3.1.2/bin/bundle:25:in `<main>'[0m
+
+Finished in 0.00085 seconds (files took 0.05459 seconds to load)
+[31m6 examples, 6 failures[0m
+
+Failed examples:
+
+[31mrspec ./spec/net/http/post/multipart_spec.rb:64[0m [36m# Net::HTTP::Post::Multipart test_form_multipart_body[0m
+[31mrspec ./spec/net/http/post/multipart_spec.rb:71[0m [36m# Net::HTTP::Post::Multipart test_form_multipart_body_with_stringio[0m
+[31mrspec ./spec/net/http/post/multipart_spec.rb:77[0m [36m# Net::HTTP::Post::Multipart test_form_multiparty_body_with_parts_headers[0m
+[31mrspec ./spec/net/http/post/multipart_spec.rb:93[0m [36m# Net::HTTP::Post::Multipart test_form_multipart_body_with_array_value[0m
+[31mrspec ./spec/net/http/post/multipart_spec.rb:111[0m [36m# Net::HTTP::Post::Multipart test_form_multipart_body_with_arrayparam[0m
+[31mrspec ./spec/net/http/post/multipart_spec.rb:122[0m [36m# Net::HTTP::Put::Multipart test_form_multipart_body_put[0m
+
