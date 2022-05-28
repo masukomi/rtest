@@ -114,6 +114,11 @@ rtest [-t<TEST_FILE_PATH>|--test=<TEST_FILE_PATH>]
 EOL
 USAGE.freeze
 
+# NOTE: How to Capture Test Output
+# script -q /dev/null bundle exec rspec foo_spec.rb | sd "\r\n" "\n" > path/to/test_data/test_N.txt
+# script -q /dev/null rtest spec/net/http/post/multipart_spec.rb | ansifilter | sed -e "s/^Running .*//" | sd "^\.+\n" "" > path/to/test_data/test_N_expected_output.txt
+
+
 # SET UP THE COLORS
 ERROR_LINE_COLOR="\e[38;5;196m"
 FILE_HIGHLIGHT_COLOR="\e[38;5;7m"
@@ -174,6 +179,10 @@ else
   AUTO_VERBOSE = ENV['RTEST_AUTO_VERBOSE'].to_i
 end
 TEST_MODE = @options.has_key? :test_file
+VERBOSE_TEST = TEST_MODE && VERBOSE
+if VERBOSE_TEST
+  puts "Running in Verbose Test mode."
+end
 
 INPUT = ARGV.size > 0 ? ARGV[0].strip : nil
 
@@ -220,7 +229,7 @@ rescue
 end
 
 def unescape(text)
-  text.gsub(ANSI_MATCHER, "")
+  text.gsub(ANSI_MATCHER, '')
 end
 def buffer_last_line(buffer)
   last_line = buffer.string.split("\n").last
@@ -349,9 +358,18 @@ def process_rspec_output(output)
   top_failure=""
   in_sub_failure = false
   output_lines.each_with_index do | line, idx |
+    if VERBOSE_TEST
+      STDERR.puts("-->" + line)
+      STDERR.puts("XXX in failure: #{in_failure}")
+    end
+
     if not in_failure
       match_data =  /^\s+\d+(\.\d+)*\)\s+(.*)/.match(line)
+      STDERR.puts("XXX match_data: #{match_data.inspect}") if VERBOSE_TEST
+
       if match_data
+        STDERR.puts("XXX found failure start") if VERBOSE_TEST
+
         # starting a new failure
         in_failure = true
         in_sub_failure = match_data[1].nil? ? false : true
@@ -385,16 +403,15 @@ def process_rspec_output(output)
 
       finished_match = /^Finished in \d+\.\d+ seconds/.match(line)
 
-      if TEST_MODE && VERBOSE
-        STDERR.puts("XXX LINE: '''#{line}'''")
-        STDERR.puts("XXX details_match: #{details_match}")
-        STDERR.puts("XXX expected_match: #{expected_match}")
-        STDERR.puts("XXX got_match: #{got_match}")
-        STDERR.puts("XXX trace_match: #{trace_match}")
-        STDERR.puts("XXX spec_match: #{spec_match}")
-        STDERR.puts("XXX diff_match: #{diff_match}")
-        STDERR.puts("XXX something_match: #{something_match}")
-        STDERR.puts("XXX finished_match: #{finished_match}")
+      if VERBOSE_TEST
+        STDERR.puts("XXX details_match: #{details_match.inspect}")
+        STDERR.puts("XXX expected_match: #{expected_match.inspect}")
+        STDERR.puts("XXX got_match: #{got_match.inspect}")
+        STDERR.puts("XXX trace_match: #{trace_match.inspect}")
+        STDERR.puts("XXX spec_match: #{spec_match.inspect}")
+        STDERR.puts("XXX diff_match: #{diff_match.inspect}")
+        STDERR.puts("XXX something_match: #{something_match.inspect}")
+        STDERR.puts("XXX finished_match: #{finished_match.inspect}")
       end
 
 
@@ -659,33 +676,48 @@ if TEST_MODE
     STDERR.puts "Unable to find expected test output file: #{@options[:expected_output_file]}"
     exit 1
   end
-  generated_output = with_captured_stdout do
-    process_rspec_output(File.read(@options[:test_file]))
-  end
+  # STDERR.puts("XXX test_file:\n#{File.read(@options[:test_file])}")
+  # STDERR.puts("XXX --------------------------------")
+
+
+  generated_output = unescape(
+    with_captured_stdout {
+      process_rspec_output(unescape(File.read(@options[:test_file])))
+    }
+  )
+
+  success_message = "✅ looks good. "
   if generated_output != File.read(@options[:expected_output_file])
     tempfile = Tempfile.new('foo')
     tempfile.write(generated_output)
     tempfile.close
-    STDERR.puts "Output didn't match expectations. Diff below"
-    STDERR.puts "< == expected output"
-    STDERR.puts "> == actual output"
-    STDERR.puts "--------------------------------------------------------"
-    STDERR.puts `diff #{@options[:expected_output_file]} #{tempfile.path}`
-    STDERR.puts "--------------------------------------------------------"
-    STDERR.puts "\n Do you want to save the generated output? [y|N]: "
+    # diff it, but tell diff to ignore whitespace changes
+    # see note below about \r
+    diff_output = `diff -b #{@options[:expected_output_file]} #{tempfile.path}`.chomp
+    if diff_output != ''
+      STDERR.puts "Output didn't match expectations. Diff below"
+      STDERR.puts "< == expected output"
+      STDERR.puts "> == actual output"
+      STDERR.puts "--------------------------------------------------------"
+      STDERR.puts
+      STDERR.puts "--------------------------------------------------------"
 
-    response = gets.chomp.downcase
-
-    if response != "y"
-      tempfile.unlink
-      exit 0
-    else
       temp_copy = "actual_test_output.txt"
       `cp #{tempfile.path} #{temp_copy}`
-      STDERR.puts "Tempfile saved. It's at: #{temp_copy}"
+      STDERR.puts "generated output saved to: #{temp_copy}"
       tempfile.unlink
       exit 1
+    else
+      puts "#{success_message}"
+      puts "Note: There were whitespace differences."
+      puts "      This is most likely a result of \r characters not being stripped"
+      puts "      from the original rspec output: "
+      puts "      #{@options[:test_file]}"
+      exit 0
     end
+  else
+    puts success_message
+    exit 0
   end
 
 
