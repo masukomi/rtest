@@ -385,6 +385,19 @@ def process_rspec_output(output)
 
       finished_match = /^Finished in \d+\.\d+ seconds/.match(line)
 
+      if TEST_MODE && VERBOSE
+        STDERR.puts("XXX LINE: '''#{line}'''")
+        STDERR.puts("XXX details_match: #{details_match}")
+        STDERR.puts("XXX expected_match: #{expected_match}")
+        STDERR.puts("XXX got_match: #{got_match}")
+        STDERR.puts("XXX trace_match: #{trace_match}")
+        STDERR.puts("XXX spec_match: #{spec_match}")
+        STDERR.puts("XXX diff_match: #{diff_match}")
+        STDERR.puts("XXX something_match: #{something_match}")
+        STDERR.puts("XXX finished_match: #{finished_match}")
+      end
+
+
       if finished_match
         in_sub_failure = false
         in_failure=false
