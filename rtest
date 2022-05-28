@@ -657,7 +657,7 @@ if TEST_MODE
     STDERR.puts "--------------------------------------------------------"
     STDERR.puts `diff #{@options[:expected_output_file]} #{tempfile.path}`
     STDERR.puts "--------------------------------------------------------"
-    STDERR.puts "\n Do you want to save the tempfile? [y|N]: "
+    STDERR.puts "\n Do you want to save the generated output? [y|N]: "
 
     response = gets.chomp.downcase
 
