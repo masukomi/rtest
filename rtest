@@ -175,6 +175,8 @@ else
 end
 TEST_MODE = @options.has_key? :test_file
 
+INPUT = ARGV.size > 0 ? ARGV[0].strip : nil
+
 START=Time.now.to_i
 
 past_run_data = {}
