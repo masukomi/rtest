@@ -1,5 +1,3 @@
-Running specs in spec/features/site_prism_features/consumer/test_thing_spec.rb
-............................................................................................................................................................................
 [38;5;196m1: Test Thing without existing user Sign up for and complete delivery transaction with testThing[0m
 
 	ERROR HERE : 	[1;38;5;7m./spec/features/site_prism_features/consumer/test_thing_spec.rb[0m:[38;5;214m76[0m

@@ -107,6 +107,10 @@ rtest [-t<TEST_FILE_PATH>|--test=<TEST_FILE_PATH>]
 
   test_0.txt should have a corresponding test_0_expected_output.txt
 
+  Note that *_expected_output.txt files _should not_ contain the
+  "Running message|path/to/spec" line
+  or the "...." line.
+
 EOL
 USAGE.freeze
 
