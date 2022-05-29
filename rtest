@@ -699,7 +699,7 @@ if TEST_MODE
       STDERR.puts "< == expected output"
       STDERR.puts "> == actual output"
       STDERR.puts "--------------------------------------------------------"
-      STDERR.puts
+      STDERR.puts diff_output
       STDERR.puts "--------------------------------------------------------"
 
       temp_copy = "actual_test_output.txt"
