@@ -709,10 +709,10 @@ if TEST_MODE
       exit 1
     else
       puts "#{success_message}"
-      puts "Note: There were whitespace differences."
-      puts "      This is most likely a result of \r characters not being stripped"
-      puts "      from the original rspec output: "
-      puts "      #{@options[:test_file]}"
+      puts 'Note: There were whitespace differences.'
+      puts '      This is most likely a result of \r characters not being stripped'
+      puts '      from the original rspec output: '
+      puts "        #{@options[:test_file]}"
       exit 0
     end
   else
