@@ -115,8 +115,8 @@ EOL
 USAGE.freeze
 
 # NOTE: How to Capture Test Output
-# script -q /dev/null bundle exec rspec foo_spec.rb | sd "\r\n" "\n" > path/to/test_data/test_N.txt
-# script -q /dev/null rtest spec/net/http/post/multipart_spec.rb | ansifilter | sed -e "s/^Running .*//" | sd "^\.+\n" "" > path/to/test_data/test_N_expected_output.txt
+# bundle exec rspec foo_spec.rb | sd "\r\n" "\n" > path/to/test_data/test_N.txt
+# rtest foo_spec.rb | ansifilter | sed -e "s/^Running .*//" | sd "^\.+\n" "" > path/to/test_data/test_N_expected_output.txt
 
 
 # SET UP THE COLORS
