@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+EXIT_STATUS=0
+for FILE in test_data/*;
+do
+	if [[ $FILE != *"expected_output.txt" ]]; then
+		./rtest -t $FILE > /dev/null
+		if [ $? -eq 0 ]; then
+			echo "✅ $FILE"
+		else
+			echo "❌ $FILE"
+			EXIT_STATUS=1
+	 	fi
+	fi
+done
+exit $EXIT_STATUS
