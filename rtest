@@ -128,6 +128,7 @@ LINE_NUMBER_COLOR="\e[38;5;214m" # was 100;33
 ERROR_HERE_LINE_COLOR="\e[1;38;5;7m" # "\e[100,37m"
 COLOR_RESET="\e[0m"
 DETAIL_LINE_COLOR="\e[38;2;255;140;0m"
+SUCCESS_COLOR="\e[38;2;7;198;25m"
 
 
 # The regex to match ANSI codes
@@ -192,6 +193,7 @@ START=Time.now.to_i
 class Failure
   attr_accessor :details,
                 :diff,
+                :display_number,
                 :expected,
                 :file,
                 :file_full_path,
@@ -199,20 +201,41 @@ class Failure
                 :killable,
                 :line_number,
                 :message,
+                :persisted,
                 :spec_file,
                 :spec_file_full_path,
                 :spec_file_line_number
+
   def initialize()
     self.killable = false
   end
+
   def empty?
     ! (details || diff || expected || file || file_full_path || got || line_number || message || spec_file || spec_file_full_path || spec_file_line_number)
+  end
+
+  def killable?
+    self.killable
+  end
+  def persisted?
+    self.persisted?
+  end
+
+  def rerunable?
+    self.spec_file_full_path || self.spec_file
+  end
+
+  def as_rspec_arg
+    (self.spec_file_full_path || self.spec_file) +
+      (self.spec_file_line_number.nil? ? "" : ":#{spec_file_line_number}")
   end
 
   def to_json
     {
       "details"               => self.details,
       "diff"                  => self.diff,
+      # display number is recalculated when read from file
+      # "display_number"        => self.display_number,
       "expected"              => self.expected,
       "file"                  => self.file,
       "file_full_path"        => self.file_full_path,
@@ -220,14 +243,25 @@ class Failure
       # "killable"              => self.killable, # never persisted
       "line_number"           => self.line_number,
       "message"               => self.message,
+      # "persisted"             => self.persisted
       "spec_file"             => self.spec_file,
       "spec_file_full_path"   => self.spec_file_full_path,
       "spec_file_line_number" => self.spec_file_line_number
     }
   end
+
+  def self.from_json(json, display_number = nil)
+    new_failure = Failure.new()
+    json.keys.each do | key |
+      new_failure.send("#{key}=".to_sym, json[key])
+    end
+    new_failure.display_number = display_number if display_number
+    new_failure.persisted = true
+    new_failure
+  end
 end
 
-def Killer
+class Killer
 
   # returns a new array of failures
   # without the killable ones.
@@ -235,39 +269,202 @@ def Killer
     failures.reject{ |f| f.killable }
   end
 
+  def self.clean_run_data(run_data)
+    run_data.failures.reject!{ |failure| failure.killable }
+    run_data
+  end
+
   # the numbers passed in are the user-facing numbers
-  def self.mark_for_death(failures, numbers)
+  def self.mark_for_death(run_log, numbers)
+    # any_bad_numbers = false
     Array(numbers).each do |n|
-      idx = n - 1
-      if failures.size > idx
-        failures[idx].killable = true
-        puts "killing #{idx + 1}: #{failures[idx].message}"
+      failure = run_log.get_failure_by_number(n)
+      if failure
+        failure.killable = true
+      else
+        STDERR.puts("#{ERROR_LINE_COLOR}Can't find #{n} for killing.#{COLOR_RESET}")
+        # any_bad_numbers = true
       end
     end
+    # if any_bad_numbers
+    #   run_log.failures.each do | f |
+    #     # next if f.killable?
+    #     STDERR.puts "#{f.display_number}) #{f.message}"
+    #   end
+    # end
   end
 end
 
+class RunLog
+  attr_accessor :failures
 
+  def self.from_json(json)
+    rl = RunLog.new()
+    failure_objects = []
+
+    json["failures"].each_with_index do |json_f, index|
+      failure_objects << Failure.from_json(json_f, (index + 1))
+    end
+    rl.failures = failure_objects
+
+    rl
+  end
+
+  # It is expected that the file won't exist
+  # In that scenario we just create a new RunLog
+  # File looks like this:
+  # {
+  #   failures: [
+  #     {
+  #       message: "",
+  #       details: "",
+  #       file: "",
+  #       line_number: 123
+  #       expected: ""
+  #       got: "",
+  #       diff: ""
+  #     }
+  #   ]
+  # }
+  def self.from_file(file_path)
+    begin
+      self.from_json(JSON.parse(File.read(file_path)))
+    rescue StandardError => e
+      STDERR.puts("problem parsing #{filename}: #{e.message}")
+      #something usable for new run at least...
+      RunLog.new()
+    end
+  end
+
+  def initialize()
+    self.failures = []
+  end
+
+  def has_failures?
+    self.failure_count > 0
+  end
+
+  def failure_count
+    self.failures.size
+  end
+
+  def get_failure_by_number(number)
+    failures.each do | f |
+      return f if f.display_number == number
+    end
+    nil
+  end
+
+  # at the moment "failures" are the only thing
+  # stored about a run.
+  # Over time I expect more metadata will be added
+  def to_json()
+    {"failures" => failures.map{ |f| f.killable? ? nil : f.to_json }.flatten }.to_json
+  end
+
+  def rerun_all
+    Rerunner.new(self).rerun_all
+  end
+
+  def rerun_numbers(numbers)
+    Rerunner.new(self).rerun(numbers)
+  end
+
+  def last_file
+    self.failures
+      .map{|f| f.spec_file_full_path || f.file }
+      .select{|f| f.end_with?("_spec.rb")}
+      .last
+  end
+
+  def new_failures
+    self.failures.select{ |f| ! f.persisted? }
+  end
+
+end
+
+# Rerunner manages reruns of past failures
+# because individual failures are rerun
+# indpependently there are problems that
+# need to be addressed
+#
+# 1. rspec is always going to start the numbering at 1
+#    (for every run) so we end up with 1, 1, 1, 1...
+# 2. a failure might become fixed and need to be
+#    removed from the list
+# 3. a single failure might become multiple failures
+#    which then need to be recorded.
+#
+# In order to accomplish 2 we need to create
+# a new "past run"  object that we can populate with
+class Rerunner
+  attr_accessor :run_log
+
+  def initialize(run_log)
+    self.run_log = run_log
+  end
+  # rerun all past failures
+  def rerun_all
+    rerun(run_log.failures.map{ |f| f.display_number })
+  end
+
+  # rerun one past failure
+  def rerun(numbers)
+    # iterate over each failure,
+    # pass it to be rerun
+    # collect the resulting failure(s)
+    # and replace the existing one with them
+    # or kill it if there were none.
+    new_run_log = RunLog.new()
+
+    # display counter is -1 because
+    # i still haven't refactored
+    # away from old 0 based index iteration yet
+    # TODO: redo how non-rerun iteration & display to be 1 based
+    display_counter = 0
+    run_log.failures.each_with_index do | failure, index |
+      display_counter += 1
+      if numbers.include? (index + 1)
+
+        rerun_log = rerun_failure(failure)
+        if rerun_log.has_failures?
+          display_counter -= 1 # because we're about to increment it n times
+          rerun_log.failures.each do | new_failure |
+            display_counter += 1
+
+            new_failure.display_number  = display_counter
+            new_run_log.failures << new_failure
+            display_failure(new_failure)
+          end
+        else
+          puts fixed_failure_message(failure)
+        end
+      else
+        new_run_log.falures << failure
+      end
+    end
+    new_run_log
+  end
+
+  def rerun_last_file
+    last_file = self.run_log.last_file
+    matching_failures = falures.select{ |f| f.spec_file_full_path == last_file }
+    rerun_numbers(matching_failures.map{ |f| f.display_number })
+  end
+
+  private
+
+  def fixed_failure_message(failure)
+    "✅ #{SUCCESS_COLOR}FIXED: #{failure.message}#{COLOR_RESET}"
+  end
+
+
+end
 
 
 
 #------------------------
 
-past_run_data = {}
-# looks like
-# {
-#   failures: [
-#     {
-#       message: "",
-#       details: "",
-#       file: "",
-#       line_number: 123
-#       expected: ""
-#       got: "",
-#       diff: ""
-#     }
-#   ]
-# }
 
 ################
 # terminal interactivity stuff
@@ -381,19 +578,23 @@ def reformat_failure_details(details)
   "\t" + details_lines.join("\n")
 end
 
-def display_failure(failure, index)
+def display_failure(failure, index = -1)
+  if failure.display_number
+    puts "\n#{ERROR_LINE_COLOR}#{failure.display_number}: #{failure.message}#{COLOR_RESET}\n"
+  else
     puts "\n#{ERROR_LINE_COLOR}#{index + 1}: #{failure.message}#{COLOR_RESET}\n"
-    puts printable_file_and_line_num(failure)
+  end
+  puts printable_file_and_line_num(failure)
 
-    if ! failure.details.nil?
-      formatted_details = reformat_failure_details(failure.details)
-      puts "#{DETAIL_LINE_COLOR}#{formatted_details}#{COLOR_RESET}"
-    end
+  if ! failure.details.nil?
+    formatted_details = reformat_failure_details(failure.details)
+    puts "#{DETAIL_LINE_COLOR}#{formatted_details}#{COLOR_RESET}"
+  end
 
-    puts "\t\t#{EXPECTED_LINE_COLOR}expected: #{failure.expected}#{COLOR_RESET}" if failure.expected
-    puts "\t\t#{GOT_LINE_COLOR}got     : #{failure.got}#{COLOR_RESET}" if failure.got
+  puts "\t\t#{EXPECTED_LINE_COLOR}expected: #{failure.expected}#{COLOR_RESET}" if failure.expected
+  puts "\t\t#{GOT_LINE_COLOR}got     : #{failure.got}#{COLOR_RESET}" if failure.got
 
-    puts "\n\t\tDiff:\n#{failure.diff.join("\n\t\t")}" if failure.diff
+  puts "\n\t\tDiff:\n#{failure.diff.join("\n\t\t")}" if failure.diff
 
 end
 def printable_file_and_line_num(failure)
@@ -414,8 +615,10 @@ def printable_file_and_line_num(failure)
   end
 end
 
+
+# returns a RunLog
 def process_rspec_output(output)
-  new_run_data = {"failures" => []}
+  new_run_data = RunLog.new()
   output_lines = output.split("\n")
   in_failure = false
   in_diff = false
@@ -440,12 +643,12 @@ def process_rspec_output(output)
         in_sub_failure = match_data[1].nil? ? false : true
         # if ! in_sub_failure
           unless current_failure.empty?
-            new_run_data['failures'] << current_failure
-            display_failure(current_failure, new_run_data['failures'].length - 1)
+            new_run_data.failures << current_failure
+            #display_failure(current_failure, new_run_data.failures.length - 1)
           end
         # end
         top_failure = match_data[2]
-        current_failure = Failure.new
+        current_failure = Failure.new()
         current_failure.message = match_data[2]
       # else, random crap we don't care about
       end
@@ -544,8 +747,8 @@ def process_rspec_output(output)
     end
   end
   unless current_failure.empty?
-    new_run_data['failures'] << current_failure
-    display_failure(current_failure, new_run_data['failures'].length - 1)
+    new_run_data.failures << current_failure
+    # display_failure(current_failure, new_run_data.failures.length - 1)
   end
   new_run_data
 end
@@ -583,6 +786,13 @@ def interactive_run_handler(run_line, output_buffer)
   output_buffer
 end
 
+# returns a RunLog
+def rerun_failure(failure)
+  #TODO warn if not rerunable
+  run_this(failure.as_rspec_arg, false)
+end
+
+# returns a RunLog
 def run_this(spec, update_file, retries = 0)
   # in a successful run there's nothing in STDERR (2)
   # it's all STDOUT (1)
@@ -640,29 +850,42 @@ def run_this(spec, update_file, retries = 0)
   new_run_data
 end
 
-def update_record(new_run_data)
-  File.write(PAST_RUN_FILENAME, jsonify_run_data(new_run_data))
+def update_record_and_display(new_run_data)
+  persistable_data = update_record(new_run_data)
+  display_failures(persistable_data.failures)
+  persistable_data
+end
+def update_record_and_display_new(new_run_data)
+  persistable_data = update_record(new_run_data)
+  display_failures(persistable_data.new_failures)
+  persistable_data
 end
 
-def jsonify_run_data(run_data)
-  j_run_data = run_data.dup
-  j_run_data["failures"] = run_data["failures"].map{ |f| f.to_json }
-  j_run_data.to_json
+def update_record(new_run_data)
+  persistable_data = Killer.clean_run_data(new_run_data)
+  if persistable_data.has_failures?
+    File.write(PAST_RUN_FILENAME, new_run_data.to_json())
+  else
+    #NOTE: currently we're storing no metadata about
+    # the run so "failures" are the only thing we're
+    # persisting. If there are no failures let's not
+    # waste time reloading this on the next run.
+    File.unlink(PAST_RUN_FILENAME)
+  end
+  persistable_data
 end
 
 def output_run_results(run_data)
-  if run_data['failures'].size > 0
-    display_failures(run_data['failures'])
+  if run_data.failures.size > 0
+    display_failures(run_data.failures)
   else
     puts NO_FAILURES_TEXT
   end
 end
 
-def display_last_run(past_run_data)
-  failures_count = past_run_data.fetch('failures', {})
-  if failures_count.size > 0
-    puts "Displaying failures (#{failures_count})"
-    display_failures(past_run_data['failures'])
+def display_run_log(run_log)
+  if run_log.has_failures?
+    display_failures(run_log.failures)
   else
     puts "No past failure data. Please run a spec through me."
   end
@@ -671,7 +894,7 @@ end
 def display_files(past_run_data)
   last_output = nil
   items_displayed = 0
-  past_run_data["failures"].each_with_index do | failure, idx |
+  past_run_data.failures.each_with_index do | failure, idx |
     this_output = printable_file_and_line_num(failure)
     if this_output != last_output
       puts "#{idx + 1}: #{this_output}"
@@ -679,7 +902,7 @@ def display_files(past_run_data)
       last_output = this_output
     end
   end
-  if items_displayed < past_run_data["failures"].size
+  if items_displayed < past_run_data.failures.size
     puts "\n\n\tNOTE: some duplicate results excluded"
     puts "\tThis just means some common problem is causing multiple"
     puts "\ttests to fail in the same way."
@@ -689,23 +912,22 @@ end
 
 def rerun_run_number(num, line_mod, past_run_data)
   idx = num - 1
-  if past_run_data["failures"].size > 0 && past_run_data["failures"][idx]
-    line_num = past_run_data["failures"][idx]["line_number"].to_i
+  if past_run_data.failures.size > 0 && past_run_data.failures[idx]
+    line_num = past_run_data.failures[idx]["line_number"].to_i
     line_num += line_mod
-    if past_run_data["failures"][idx]["spec_file"].nil?
-      spec = past_run_data["failures"][idx]["file_full_path"]
+    if past_run_data.failures[idx]["spec_file"].nil?
+      spec = past_run_data.failures[idx]["file_full_path"]
       spec += ":#{line_num}" if line_num
     else
-      line_num = past_run_data["failures"][idx]["spec_file_line_number"].to_i
+      line_num = past_run_data.failures[idx]["spec_file_line_number"].to_i
       line_num += line_mod
 
-      spec = past_run_data["failures"][idx]["spec_file_full_path"]
+      spec = past_run_data.failures[idx]["spec_file_full_path"]
       spec += ":#{line_num}" if line_num
     end
-    puts "Running: #{spec}\n#{past_run_data["failures"][idx]["message"]}\n\n----------------------------\n"
-    # output_run_results(run_this(spec, false))
+    puts "Running: #{spec}\n#{past_run_data.failures[idx]["message"]}\n\n----------------------------\n"
     run_data = run_this(spec, false)
-    puts NO_FAILURES_TEXT if run_data['failures'].size == 0
+    puts NO_FAILURES_TEXT unless run_data.has_failures?
   else
     STDERR.puts("I don't seem to have data on run #{idx + 1}")
   end
@@ -724,36 +946,33 @@ ensure
   $stdout = original_stdout  # restore $stdout to its previous value
 end
 
+def confirm_test_files_or_die(options)
+  if ! File.exist? options[:test_file]
+    STDERR.puts "Unable to find test file: #{options[:test_file]}"
+    exit 1
+  end
+  if ! File.exist? options[:expected_output_file]
+    STDERR.puts "Unable to find expected test output file: #{options[:expected_output_file]}"
+    exit 1
+  end
+end
 
 
 # -------------------------
 
-past_run_data = {"failures" => []}
+past_run_data = RunLog.new()
 
 if File.exist?(PAST_RUN_FILENAME) && ! TEST_MODE
-  begin
-    past_run_data = JSON.parse(File.read(PAST_RUN_FILENAME))
-  rescue StandardError => e
-    STDERR.puts("problem parsing #{PAST_RUN_FILENAME}: #{e.message}")
-  end
+  past_run_data = RunLog.from_file(PAST_RUN_FILENAME)
 end
 
 if TEST_MODE
-  if ! File.exist? @options[:test_file]
-    STDERR.puts "Unable to find test file: #{@options[:test_file]}"
-    exit 1
-  end
-  if ! File.exist? @options[:expected_output_file]
-    STDERR.puts "Unable to find expected test output file: #{@options[:expected_output_file]}"
-    exit 1
-  end
-  # STDERR.puts("XXX test_file:\n#{File.read(@options[:test_file])}")
-  # STDERR.puts("XXX --------------------------------")
+  confirm_test_files_or_die(@options)
 
-
+  generated_run_log = process_rspec_output(unescape(File.read(@options[:test_file])))
   generated_output = unescape(
     with_captured_stdout {
-      process_rspec_output(unescape(File.read(@options[:test_file])))
+      display_run_log(generated_run_log)
     }
   )
 
@@ -793,7 +1012,7 @@ if TEST_MODE
 
 
 elsif INPUT.nil?
-  display_last_run(past_run_data)
+  display_run_log(past_run_data)
 elsif /.*_spec.rb(:\d+)?$/.match(INPUT) \
   || INPUT=="all" \
   || INPUT=="last_file" \
@@ -802,35 +1021,40 @@ elsif /.*_spec.rb(:\d+)?$/.match(INPUT) \
     puts "Running specs in #{INPUT}\n"
     # must be a spec file
     updated_run_data = run_this(INPUT, true)
+    updated_run_data = update_record_and_display(updated_run_data)
+    puts NO_FAILURES_TEXT unless updated_run_data.has_failures?
   elsif INPUT == "last_file"
-    if past_run_data["failures"].empty?
+    if ! past_run_data.has_failures?
       puts "No file data from last run"
       exit 64 # EX_USAGE
     end
-    last_file = past_run_data["failures"]
-      .map{|f| f["spec_file"] || f["file"]}
-      .select{|f| f.end_with?("_spec.rb")}
-      .last
+    last_file = past_run_data.last_file
+    if last_file.nil?
+      STDERR.puts("🤨 Unable to find spec file amongst past failures. ")
+      exit 1
+    end
     puts "Running #{last_file}...\n"
-    updated_run_data = run_this(last_file, true)
+    updated_run_data = Rerunner.new(past_run_data)
+    update_record_and_display_new(updated_run_data)
+    # rerunner will take care of mentioning fixed tests
   elsif INPUT == "all"
     puts "Running ALL specs...\n"
-    updated_run_data = run_this("", true)
+    updated_run_data = run_this('', true)
+    updated_run_data = update_record_and_display(updated_run_data)
   end
   # output_run_results(updated_run_data)
-  puts NO_FAILURES_TEXT if updated_run_data['failures'].size == 0
+  puts NO_FAILURES_TEXT unless updated_run_data.has_failures?
 elsif /^\d+$/.match(INPUT)
   line_mod = ARGV.size > 1 ? ARGV[1].to_i : 0
-  rerun_run_number(INPUT.to_i, line_mod, past_run_data)
+  updated_run_data = Rerunner.new(past_run_data).rerun(INPUT.to_i)
+  update_record_and_display(updated_run_data)
+  # rerunner will take care of mentioning fixed tests
 elsif INPUT == "rerun"
- if past_run_data["failures"].size == 0
+ if ! past_run_data.has_failures?
    puts "No past failures found to rerun."
    exit 0
  end
- run_range = (1..past_run_data["failures"].size)
- run_range.each do | num |
-  rerun_run_number(num, 0, past_run_data)
- end
+ Rerunner.new(past_run_data).rerun_all
 elsif INPUT == "kill" &&  /^\d+(-\d+)?$/.match(ARGV[1].to_s)
   if ! /^\d+-\d+?$/.match(ARGV[1])
     indexes = Array(ARGV[1].to_i)
@@ -847,17 +1071,18 @@ elsif INPUT == "kill" &&  /^\d+(-\d+)?$/.match(ARGV[1].to_s)
     else
       indexes = (x..y).to_a
     end
-
   end
-  Killer.mark_for_death(past_run_data["failures"], indexes)
+
+  Killer.mark_for_death(past_run_data, indexes)
   puts "-------------------------------------------------\n"
   puts "-------------------------------------------------\n"
-  update_record(past_run_data)
-  display_last_run(past_run_data)
+  updated_run_data = update_record(past_run_data)
+  display_failures(updated_run_data.failures)
+  puts NO_FAILURES_TEXT unless updated_run_data.has_failures?
 elsif INPUT == "file" &&  /^\d+$/.match(ARGV[1].to_s)
   idx = ARGV[1].to_i - 1
   if past_run_data.size > idx
-    puts past_run_data["failures"][idx]["file"]
+    puts past_run_data.failures[idx]["file"]
   else
     exit 75 # EX_TEMPFAIL (user input)
   end
