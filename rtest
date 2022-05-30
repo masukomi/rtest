@@ -188,6 +188,31 @@ INPUT = ARGV.size > 0 ? ARGV[0].strip : nil
 
 START=Time.now.to_i
 
+#-----------------------
+class Failure
+  attr_accessor :details,
+                :diff,
+                :expected,
+                :file,
+                :file_full_path,
+                :got,
+                :line_number,
+                :message,
+                :spec_file,
+                :spec_file_full_path,
+                :spec_file_line_number
+
+  def empty?
+    ! (details || diff || expected || file || file_full_path || got || line_number || message || spec_file || spec_file_full_path || spec_file_line_number)
+  end
+end
+
+
+
+
+
+#------------------------
+
 past_run_data = {}
 # looks like
 # {
@@ -317,35 +342,35 @@ def reformat_failure_details(details)
 end
 
 def display_failure(failure, index)
-    puts "\n#{ERROR_LINE_COLOR}#{index + 1}: #{failure["message"]}#{COLOR_RESET}\n"
+    puts "\n#{ERROR_LINE_COLOR}#{index + 1}: #{failure.message}#{COLOR_RESET}\n"
     puts printable_file_and_line_num(failure)
 
-    if ! failure["details"].nil?
-      formatted_details = reformat_failure_details(failure["details"])
+    if ! failure.details.nil?
+      formatted_details = reformat_failure_details(failure.details)
       puts "#{DETAIL_LINE_COLOR}#{formatted_details}#{COLOR_RESET}"
     end
 
-    puts "\t\t#{EXPECTED_LINE_COLOR}expected: #{failure["expected"]}#{COLOR_RESET}" if failure.has_key? "expected"
-    puts "\t\t#{GOT_LINE_COLOR}got     : #{failure["got"]}#{COLOR_RESET}" if failure.has_key? "got"
+    puts "\t\t#{EXPECTED_LINE_COLOR}expected: #{failure.expected}#{COLOR_RESET}" if failure.expected
+    puts "\t\t#{GOT_LINE_COLOR}got     : #{failure.got}#{COLOR_RESET}" if failure.got
 
-    puts "\n\t\tDiff:\n#{failure["diff"].join("\n\t\t")}" if failure.has_key? "diff"
+    puts "\n\t\tDiff:\n#{failure.diff.join("\n\t\t")}" if failure.diff
 
 end
 def printable_file_and_line_num(failure)
-  if failure["spec_file"]
-    line = "#{ failure["file"].nil? ? "\t" : ""}#{ERROR_HERE_LINE_COLOR}#{failure["spec_file_full_path"]}#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure["spec_file_line_number"]}#{COLOR_RESET}"
+  if failure.spec_file
+    line = "#{ failure.file.nil? ? "\t" : ""}#{ERROR_HERE_LINE_COLOR}#{failure.spec_file_full_path}#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure.spec_file_line_number}#{COLOR_RESET}"
 	# details on fd and what it takes can be found here
 	# https://github.com/sharkdp/fd#readme
 
-    if failure["file"]
+    if failure.file
       line = "\tFAILED SPEC: " + line
-      line += "\n\tERROR HERE : #{ERROR_HERE_LINE_COLOR}#{failure["file_full_path"]}#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure["line_number"]}#{COLOR_RESET}"
+      line += "\n\tERROR HERE : #{ERROR_HERE_LINE_COLOR}#{failure.file_full_path}#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure.line_number}#{COLOR_RESET}"
     else
       line = "\n\tERROR HERE : " + line
     end
     line
   else
-    "\tERROR HERE : #{ERROR_HERE_LINE_COLOR}#{failure["file"]}#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure["line_number"]}#{COLOR_RESET}"
+    "\tERROR HERE : #{ERROR_HERE_LINE_COLOR}#{failure.file}#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure.line_number}#{COLOR_RESET}"
   end
 end
 
@@ -354,7 +379,7 @@ def process_rspec_output(output)
   output_lines = output.split("\n")
   in_failure = false
   in_diff = false
-  current_failure = {}
+  current_failure = Failure.new()
   top_failure=""
   in_sub_failure = false
   output_lines.each_with_index do | line, idx |
@@ -380,8 +405,8 @@ def process_rspec_output(output)
           end
         # end
         top_failure = match_data[2]
-        current_failure = {}
-        current_failure["message"] = match_data[2]
+        current_failure = Failure.new
+        current_failure.message = match_data[2]
       # else, random crap we don't care about
       end
     else
@@ -422,56 +447,56 @@ def process_rspec_output(output)
         if ! details_match[1].nil?
           # we're in a sub-failure
           in_sub_failure = true
-          current_failure = {} # reset
-          current_failure["message"] = "#{top_failure}\n\t#{details_match[2]}"
+          current_failure =  Failure.new # reset
+          current_failure.message = "#{top_failure}\n\t#{details_match[2]}"
         end
 
-        current_failure["details"] = details_match[2]
+        current_failure.details = details_match[2]
       elsif expected_match
-        current_failure["expected"] = expected_match[1]
+        current_failure.expected = expected_match[1]
       elsif got_match
-        current_failure["got"] = got_match[1]
-      elsif spec_match && current_failure["spec_file"].nil?
-        current_failure["spec_file"] = spec_match[2]
-        current_failure["spec_file_full_path"] = spec_match[1]
-        current_failure["spec_file_line_number"] = spec_match[3]
+        current_failure.got = got_match[1]
+      elsif spec_match && ! current_failure.spec_file
+        current_failure.spec_file = spec_match[2]
+        current_failure.spec_file_full_path = spec_match[1]
+        current_failure.spec_file_line_number = spec_match[3]
         top_failure = ""
         in_failure = false
         in_sub_failure = false
         in_diff = false
-      elsif trace_match and (current_failure["file"] || current_failure["spec_file"])
+      elsif trace_match and (current_failure.file || current_failure.spec_file)
         in_diff = false
-        current_failure["file"] = trace_match[2]
-        current_failure["file_full_path"] = trace_match[1]
-        current_failure["line_number"] = trace_match[3]
-        unless current_failure["spec_file"].nil?
+        current_failure.file = trace_match[2]
+        current_failure.file_full_path = trace_match[1]
+        current_failure.line_number = trace_match[3]
+        unless current_failure.spec_file.nil?
           in_failure = false
           in_sub_failure = false
           top_failure = ""
         end
       elsif trace_match
-        current_failure["file"] = trace_match[2]
-        current_failure["file_full_path"] = trace_match[1]
-        current_failure["line_number"] = trace_match[3]
+        current_failure.file = trace_match[2]
+        current_failure.file_full_path = trace_match[1]
+        current_failure.line_number = trace_match[3]
       elsif diff_match && ! in_diff
         in_diff = true
-        current_failure["diff"] = []
+        current_failure.diff = []
           # ends when we get to the trace_match
           # don't want the first line since it's just "Diff:"
       elsif in_diff
-        current_failure["diff"] << line.lstrip
-      elsif current_failure.has_key? "details"
+        current_failure.diff << line.lstrip
+      elsif current_failure.details
         #we're somewhere between the Failure/Error line
         #and the stack trace
         if ! is_ignorable_detail(line)
-          current_failure["details"] += "\n#{line}"
+          current_failure.details += "\n#{line}"
         end
       elsif in_sub_failure && ! something_match.nil?
         if ! is_ignorable_detail(line)
-          if current_failure["details"]
-            current_failure["details"] += "\n#{line}"
+          if current_failure.details
+            current_failure.details += "\n#{line}"
           else
-            current_failure["details"] = "\n#{line}"
+            current_failure.details = "\n#{line}"
           end
         end
       end
