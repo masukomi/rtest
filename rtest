@@ -196,14 +196,54 @@ class Failure
                 :file,
                 :file_full_path,
                 :got,
+                :killable,
                 :line_number,
                 :message,
                 :spec_file,
                 :spec_file_full_path,
                 :spec_file_line_number
-
+  def initialize()
+    self.killable = false
+  end
   def empty?
     ! (details || diff || expected || file || file_full_path || got || line_number || message || spec_file || spec_file_full_path || spec_file_line_number)
+  end
+
+  def to_json
+    {
+      "details"               => self.details,
+      "diff"                  => self.diff,
+      "expected"              => self.expected,
+      "file"                  => self.file,
+      "file_full_path"        => self.file_full_path,
+      "got"                   => self.got,
+      # "killable"              => self.killable, # never persisted
+      "line_number"           => self.line_number,
+      "message"               => self.message,
+      "spec_file"             => self.spec_file,
+      "spec_file_full_path"   => self.spec_file_full_path,
+      "spec_file_line_number" => self.spec_file_line_number
+    }
+  end
+end
+
+def Killer
+
+  # returns a new array of failures
+  # without the killable ones.
+  def self.cull_failures(failures)
+    failures.reject{ |f| f.killable }
+  end
+
+  # the numbers passed in are the user-facing numbers
+  def self.mark_for_death(failures, numbers)
+    Array(numbers).each do |n|
+      idx = n - 1
+      if failures.size > idx
+        failures[idx].killable = true
+        puts "killing #{idx + 1}: #{failures[idx].message}"
+      end
+    end
   end
 end
 
@@ -601,7 +641,13 @@ def run_this(spec, update_file, retries = 0)
 end
 
 def update_record(new_run_data)
-  File.write(PAST_RUN_FILENAME, new_run_data.to_json)
+  File.write(PAST_RUN_FILENAME, jsonify_run_data(new_run_data))
+end
+
+def jsonify_run_data(run_data)
+  j_run_data = run_data.dup
+  j_run_data["failures"] = run_data["failures"].map{ |f| f.to_json }
+  j_run_data.to_json
 end
 
 def output_run_results(run_data)
@@ -786,28 +832,24 @@ elsif INPUT == "rerun"
   rerun_run_number(num, 0, past_run_data)
  end
 elsif INPUT == "kill" &&  /^\d+(-\d+)?$/.match(ARGV[1].to_s)
-  indexes = Array(ARGV[1].to_i - 1)
-  if /^\d+-\d+?$/.match(ARGV[1])
+  if ! /^\d+-\d+?$/.match(ARGV[1])
+    indexes = Array(ARGV[1].to_i)
+  else
     x, y = ARGV[1].split('-').map(&:to_i)
     # If we work from highest to lowest we can
     # avoid complications resulting
     # from shortening an array while iterating over it
 
     if x < y
-      indexes = ((x - 1)..(y - 1)).to_a.reverse
+      indexes = (x..y).to_a.reverse
     elsif x == y
       indexes = [x]
     else
-      indexes = ((x - 1)..(y - 1)).to_a
+      indexes = (x..y).to_a
     end
 
   end
-
-  indexes.each do |idx|
-    puts "killing #{idx}: #{past_run_data["failures"][idx]["message"]}"
-    # display_failure(past_run_data["failures"][idx], idx)
-    past_run_data["failures"].slice!(idx)
-  end
+  Killer.mark_for_death(past_run_data["failures"], indexes)
   puts "-------------------------------------------------\n"
   puts "-------------------------------------------------\n"
   update_record(past_run_data)
