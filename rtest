@@ -151,6 +151,7 @@ ANSI_MATCHER = %r{
 
 
 NO_FAILURES_TEXT="\n✅ No failures."
+NO_TESTS_RUN_TEXT="\n -----------------------------------------------\n⚠️   NOTE: This is only a replay of past output."
 
 PAST_RUN_FILENAME=".rtest.json"
 
@@ -1013,6 +1014,7 @@ if TEST_MODE
 
 elsif INPUT.nil?
   display_run_log(past_run_data)
+  puts NO_TESTS_RUN_TEXT
 elsif /.*_spec.rb(:\d+)?$/.match(INPUT) \
   || INPUT=="all" \
   || INPUT=="last_file" \
