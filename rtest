@@ -546,7 +546,7 @@ def run_this(spec, update_file, retries = 0)
   elsif output.match(/(Run `bundle install`|Bundler::GemNotFound|Bundler could not find compatible versions|bundler: command not found: rspec)/m)
     if output.match(/could not find compatible versions/m)
       puts "\nBundler issue you'll have to address..."
-      puts standard_error.split("\n")[0..20].join("\n")+"\n..."
+      puts output.split("\n")[0..20].join("\n")+"\n..."
       exit 1
     end
     puts "\nYou need to bundle"
