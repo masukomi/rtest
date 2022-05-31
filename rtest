@@ -219,7 +219,7 @@ class Failure
     self.killable
   end
   def persisted?
-    self.persisted?
+    self.persisted
   end
 
   def rerunable?
@@ -349,6 +349,10 @@ class RunLog
     self.failures.size
   end
 
+  def failure_numbers
+    failures.map{ |f| f.display_number }
+  end
+
   def get_failure_by_number(number)
     failures.each do | f |
       return f if f.display_number == number
@@ -376,6 +380,10 @@ class RunLog
       .map{|f| f.spec_file_full_path || f.file }
       .select{|f| f.end_with?("_spec.rb")}
       .last
+  end
+
+  def failures_in_file(spec_file)
+    self.failures.select{ |f| f.spec_file_full_path == spec_file }
   end
 
   def new_failures
@@ -406,7 +414,7 @@ class Rerunner
   end
   # rerun all past failures
   def rerun_all
-    rerun(run_log.failures.map{ |f| f.display_number })
+    rerun(run_log.failure_numbers)
   end
 
   # rerun one past failure
@@ -444,13 +452,14 @@ class Rerunner
         new_run_log.falures << failure
       end
     end
+
     new_run_log
   end
 
   def rerun_last_file
     last_file = self.run_log.last_file
-    matching_failures = falures.select{ |f| f.spec_file_full_path == last_file }
-    rerun_numbers(matching_failures.map{ |f| f.display_number })
+    failure_numbers = self.run_log.failures_in_file(last_file).map{ |f| f.display_number }
+    rerun(failure_numbers)
   end
 
   private
@@ -497,7 +506,6 @@ end
 def buffer_last_line(buffer)
   last_line = buffer.string.split("\n").last
   return nil unless last_line
-  # $stderr.puts("XXX last_line (#{lines.size}): '#{unescape(last_line).strip}'\n")
   unescape(last_line)
 end
 
@@ -1036,8 +1044,9 @@ elsif /.*_spec.rb(:\d+)?$/.match(INPUT) \
       exit 1
     end
     puts "Running #{last_file}...\n"
-    updated_run_data = Rerunner.new(past_run_data)
-    update_record_and_display_new(updated_run_data)
+    # NOTE: display happens during rerun
+    updated_run_data = Rerunner.new(past_run_data).rerun_last_file
+    update_record(updated_run_data)
     # rerunner will take care of mentioning fixed tests
   elsif INPUT == "all"
     puts "Running ALL specs...\n"
