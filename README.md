@@ -1,20 +1,22 @@
-## RTest 
+## rtest 
 
 An RSpec wrapper that cuts down on the noisy output,
 and makes it easier to re-run failing tests.
 
 ### Why Use It? 
-I'll answer that with 2 pictures. I've added 5 failures into the multipart-post gem and then run the full test suite. The 1st image is `rspec`'s output. The 2nd image is `rtest`'s output. It's still running the same `rspec`, it's just trimming the fat from the output and making it more readable and clear. 
+I'll answer that with 2 pictures. I've added 5 failures into the multipart-post gem and then run the full test suite. The 1st image is `rtest` output. The 2nd image is what you'll have to wade through if you keep using RSpec. Under the covers, `rtest` is still running the same `rspec` command. It's just trimming the fat from the output, making it more readable, and easier to understand. 
 
 Click the images to see a full-size readable version.
 
-#### RSpec output
-[![example rspec output](https://github.com/masukomi/rtest/blob/example_images/docs/images/example_rspec_output.png?raw=true)](https://github.com/masukomi/rtest/blob/example_images/docs/images/example_rspec_output.png?raw=true)
-
 #### rtest output
-This is `rtest`'s output for the exact same `rspec` run.
+This is typical `rtest`'s output.
 
 [![example rtest output](https://github.com/masukomi/rtest/blob/example_images/docs/images/example_rtest_output.png?raw=true)](https://github.com/masukomi/rtest/blob/example_images/docs/images/example_rtest_output.png?raw=true)
+
+#### RSpec output
+This is what the exact same test run looks like in RSpec.
+
+[![example rspec output](https://github.com/masukomi/rtest/blob/example_images/docs/images/example_rspec_output.png?raw=true)](https://github.com/masukomi/rtest/blob/example_images/docs/images/example_rspec_output.png?raw=true)
 
 
 
