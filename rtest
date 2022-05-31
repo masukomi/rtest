@@ -186,6 +186,8 @@ if VERBOSE_TEST
   puts "Running in Verbose Test mode."
 end
 
+SCREEN_WIDTH= (ENV['COLUMNS'] || `tput cols`.chomp || 80).to_i
+
 INPUT = ARGV.size > 0 ? ARGV[0].strip : nil
 
 START=Time.now.to_i
@@ -419,6 +421,7 @@ class Rerunner
 
   # rerun one past failure
   def rerun(numbers)
+    numbers = Array(numbers)
     # iterate over each failure,
     # pass it to be rerun
     # collect the resulting failure(s)
@@ -449,7 +452,7 @@ class Rerunner
           puts fixed_failure_message(failure)
         end
       else
-        new_run_log.falures << failure
+        new_run_log.failures << failure
       end
     end
 
@@ -604,23 +607,85 @@ def display_failure(failure, index = -1)
   puts "\t\t#{GOT_LINE_COLOR}got     : #{failure.got}#{COLOR_RESET}" if failure.got
 
   puts "\n\t\tDiff:\n#{failure.diff.join("\n\t\t")}" if failure.diff
-
 end
+
+
+# a path line is a line that ends in a file path
+# it may or may not, have a preface.
+def path_line_truncator(preface, path, suffix, soft_max=SCREEN_WIDTH)
+  #TODO calculate how long a tab stop is
+  #for now i'm assuming the default of 8 characters
+  tab_length = 8
+  preface ||= ""
+  unescaped_preface = unescape(preface)
+  unescaped_suffix = unescape(suffix)
+  non_file_length =  unescaped_preface.length + (unescaped_preface.gsub(/[^\t]/, '').length * (tab_length - 1)) + unescaped_suffix.length
+
+  basename = File.basename(path)
+  elipsis_basename = "…#{File::SEPARATOR}#{basename}"
+
+  if basename.length >= soft_max
+    return elipsis_basename
+  else
+    available_chars = soft_max - elipsis_basename.length - non_file_length
+    path_chunks = path.split(File::SEPARATOR)
+    returnable = []
+
+    # efficient? no, not really, but easy to think about? yes
+    # and yeah, there's got to be a better way to do this.
+    # TODO: refactor this to be less... kludgey
+    (0..path_chunks.length).each do | index |
+      if index != path_chunks.length
+        chunk = path_chunks[index]
+        returnable << chunk
+        if returnable.join(File::SEPARATOR).length > available_chars
+          return preface +
+                 (returnable[0..-2] + [elipsis_basename]).join(File::SEPARATOR) +
+                 suffix
+        end
+      else
+        return preface +
+               (returnable + [elipsis_basename]).join(File::SEPARATOR) +
+               suffix
+      end
+    end
+  end
+end
+
 def printable_file_and_line_num(failure)
+  lines = []
   if failure.spec_file
-    line = "#{ failure.file.nil? ? "\t" : ""}#{ERROR_HERE_LINE_COLOR}#{failure.spec_file_full_path}#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure.spec_file_line_number}#{COLOR_RESET}"
 	# details on fd and what it takes can be found here
 	# https://github.com/sharkdp/fd#readme
 
     if failure.file
-      line = "\tFAILED SPEC: " + line
-      line += "\n\tERROR HERE : #{ERROR_HERE_LINE_COLOR}#{failure.file_full_path}#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure.line_number}#{COLOR_RESET}"
+      # if so, we're going to display the spec error & where it blew up in the file
+      lines << path_line_truncator(
+        "\tFAILED SPEC: #{ERROR_HERE_LINE_COLOR}",
+        failure.spec_file_full_path,
+        "#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure.spec_file_line_number}#{COLOR_RESET}"
+      )
+
+      lines <<
+        path_line_truncator("\tERROR HERE : #{ERROR_HERE_LINE_COLOR}",
+                            failure.file_full_path,
+                            "#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure.line_number}#{COLOR_RESET}"
+        )
     else
-      line = "\n\tERROR HERE : " + line
+      # we're _only_ going to display the spec file where the error occurred.
+      lines <<  path_line_truncator("\tERROR HERE : #{ERROR_HERE_LINE_COLOR}",
+                                    failure.spec_file_full_path,
+                                    "#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure.spec_file_line_number}#{COLOR_RESET}"
+                )
     end
-    line
+    lines.join("\n")
   else
-    "\tERROR HERE : #{ERROR_HERE_LINE_COLOR}#{failure.file}#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure.line_number}#{COLOR_RESET}"
+    # what is even happening?!
+    path_line_truncator(
+      "\tERROR HERE : #{ERROR_HERE_LINE_COLOR}",
+      failure.file,
+      "#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure.line_number}#{COLOR_RESET}"
+    )
   end
 end
 
@@ -1057,8 +1122,9 @@ elsif /.*_spec.rb(:\d+)?$/.match(INPUT) \
   puts NO_FAILURES_TEXT unless updated_run_data.has_failures?
 elsif /^\d+$/.match(INPUT)
   line_mod = ARGV.size > 1 ? ARGV[1].to_i : 0
+  # NOTE: display happens during rerun
   updated_run_data = Rerunner.new(past_run_data).rerun(INPUT.to_i)
-  update_record_and_display(updated_run_data)
+  update_record(updated_run_data)
   # rerunner will take care of mentioning fixed tests
 elsif INPUT == "rerun"
  if ! past_run_data.has_failures?
