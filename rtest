@@ -176,7 +176,8 @@ PAST_RUN_FILENAME=".rtest.json"
 @options = {
   :shortened_paths => false,
   :verbose => false,
-  :auto_verbose_seconds => 0
+  :auto_verbose_seconds => 0,
+  :rspec => false
 }
 
 
@@ -187,7 +188,7 @@ options_parser = OptionParser.new do |parser|
     @options[:verbose] = v
   end
 
-  parser.on("-s", "--shortened", "Truncate paths to fit screen width") do |s|
+  parser.on("-s", "--shortened", "Truncate paths to fit screen width") do
     @options[:shortened_paths] = true
   end
 
@@ -200,6 +201,10 @@ options_parser = OptionParser.new do |parser|
     @options[:auto_verbose_seconds] = s.to_i
   end
 
+  parser.on("--rspec=NUMBER", "Run the specified test in rspec") do |number|
+    @options[:rspec] = number.to_i
+  end
+
   parser.on("-h", "--help") do
     puts USAGE
     exit 0
@@ -209,8 +214,9 @@ end
 
 numeric_options = ARGV.select{|o| /^-?\d+$/.match(o)}
 foo = options_parser.parse(ARGV.reject{|o| /^-?\d+$/.match(o)})
+REMAINING_ARGS = ARGV.reject{|o| /^-\w+\S*|^--[-\w]+(?:=\S+)$/.match(o)} + numeric_options
 OPTIONS=@options
-REMAINING_ARGS = ARGV.reject{|o| /^-\w+\S*/.match(o)} + numeric_options
+
 
 
 VERBOSE = OPTIONS[:verbose]
@@ -1102,7 +1108,7 @@ if TEST_MODE
   end
 
 
-elsif INPUT.nil?
+elsif INPUT.nil? && ! OPTIONS[:rspec]
   display_run_log(past_run_data)
   puts NO_TESTS_RUN_TEXT
 elsif /.*_spec.rb(:\d+)?$/.match(INPUT) \
@@ -1137,12 +1143,24 @@ elsif /.*_spec.rb(:\d+)?$/.match(INPUT) \
   end
   # output_run_results(updated_run_data)
   puts NO_FAILURES_TEXT unless updated_run_data.has_failures?
-elsif /^\d+$/.match(INPUT)
-  failure_number = INPUT.to_i
+elsif /^\d+$/.match(INPUT) || OPTIONS[:rspec]
+  failure_number = OPTIONS[:rspec] ? OPTIONS[:rspec] : INPUT.to_i
   offset = REMAINING_ARGS.size > 0 ? REMAINING_ARGS[0].to_i : 0
   # NOTE: display happens during rerun
-  past_run_data.get_failure_by_number(failure_number).offset = offset
-  updated_run_data = Rerunner.new(past_run_data).rerun(failure_number)
+  failure= past_run_data.get_failure_by_number(failure_number)
+  failure.offset = offset
+  if !OPTIONS[:rspec]
+    updated_run_data = Rerunner.new(past_run_data).rerun(failure_number)
+  else
+    # we can't run it ourselves or we'll hang on byebug or
+    # binding.pry lines
+    #
+    # we _could_ do it the way we do the other interactive stuff
+    # but the idea here was to make it trivial to rerun something in
+    # rspec directly
+    puts "bundle exec rspec #{failure.as_rspec_arg}"
+    exit 0
+  end
   update_record(updated_run_data)
   # rerunner will take care of mentioning fixed tests
 elsif INPUT == "rerun"
