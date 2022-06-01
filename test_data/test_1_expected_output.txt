@@ -1,8 +1,7 @@
 
 1: Test Thing without existing user Sign up for and complete delivery transaction with testThing
-
-	ERROR HERE : 	./spec/features/site_prism_features/consumer/test_thing_spec.rb:76
+	ERROR HERE : ./spec/features/site_prism_features/…/test_thing_spec.rb:76
 	@auth_window = window_opened_by { 3rd_party_frame.sign_in_button.click }
-
+     
 	►     Capybara::WindowError:
 	►       block passed to #window_opened_by opened 0 windows instead of 1

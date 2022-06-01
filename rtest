@@ -1066,7 +1066,7 @@ if TEST_MODE
       STDERR.puts diff_output
       STDERR.puts "--------------------------------------------------------"
 
-      temp_copy = "actual_test_output.txt"
+      temp_copy = "#{@options[:test_file].sub(".txt", "")}_actual_test_output.txt"
       `cp #{tempfile.path} #{temp_copy}`
       STDERR.puts "generated output saved to: #{temp_copy}"
       tempfile.unlink

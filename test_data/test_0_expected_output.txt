@@ -1,8 +1,8 @@
 
 1: App Name Set App Name as foo type in store info config
 	super(options, &block)
-	FAILED SPEC: ./spec/features/site_prism_features/admin/store/settings/app_name_spec.rb:27
-	ERROR HERE : ./spec/support/site_prism_pages/consumer/store.rb:166
+	FAILED SPEC: ./spec/features/site_prism_features/…/app_name_spec.rb:27
+	ERROR HERE : ./spec/support/site_prism_pages/consumer/…/store.rb:166
 	super(options, &block)
 
 	►          Selenium::WebDriver::Error::UnknownError:
@@ -10,7 +10,7 @@
 	►              (Session info: headless chrome=101.0.4951.64)
 
 2: Failure/Error: raise JavascriptConsoleError, error_message
-	ERROR HERE : spec/support/capybara.rb:223
+	ERROR HERE : spec/support/capybara.rb/…/capybara.rb:223
 	
           JavascriptConsoleError:
 	►            https://app_name1601064859.zendesk.com/embeddable/config - Failed to load resource: the server responded with a status of 404 ()
