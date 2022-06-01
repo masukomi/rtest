@@ -873,7 +873,7 @@ def run_this(spec, update_file, retries = 0)
   verbosable = VERBOSE || AUTO_VERBOSE > 0
 
   run_line ="bundle exec rspec #{verbosable ? '--format=documentation' : ''} #{spec} 2>&1"
-  # $stderr.puts("XXX running: #{run_line}")
+  # STDERR.puts("XXX running: #{run_line}")
   # Redirecting STDERR to STDOUT because rspec is...
   # They've made "interesting" choices about what goes where
   output_buffer = interactive_run_handler(run_line, StringIO.new(""))
@@ -885,7 +885,7 @@ def run_this(spec, update_file, retries = 0)
   # you, my brilliant reader, know a workaround.
 
   output = unescape(output_buffer.string)
-  # $stderr.puts("XXX escaped output: \n#{output}")
+  # STDERR.puts("XXX escaped output: \n#{output}")
 
   if output.match(/^[A-Z]+[a-z]+\w+Error:/)
     puts "\n⚠️ Problems encountered: \n\t#{output.split("\n").first(10).join("\n\t")}\n..."
