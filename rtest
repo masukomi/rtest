@@ -214,6 +214,7 @@ class Failure
                 :got,
                 :killable,
                 :line_number,
+                :offset,
                 :message,
                 :persisted,
                 :spec_file,
@@ -222,6 +223,7 @@ class Failure
 
   def initialize()
     self.killable = false
+    self.offset = 0
   end
 
   def empty?
@@ -241,7 +243,11 @@ class Failure
 
   def as_rspec_arg
     (self.spec_file_full_path || self.spec_file) +
-      (self.spec_file_line_number.nil? ? "" : ":#{spec_file_line_number}")
+      self.spec_arg_line_number
+  end
+
+  def spec_arg_line_number
+    self.spec_file_line_number.nil? ? "" : ":" + (self.spec_file_line_number + self.offset).to_s
   end
 
   def to_json
@@ -257,7 +263,8 @@ class Failure
       # "killable"              => self.killable, # never persisted
       "line_number"           => self.line_number,
       "message"               => self.message,
-      # "persisted"             => self.persisted
+      # "offset"                => self.offset, # never persisted
+      # "persisted"             => self.persisted, # duh
       "spec_file"             => self.spec_file,
       "spec_file_full_path"   => self.spec_file_full_path,
       "spec_file_line_number" => self.spec_file_line_number
@@ -429,6 +436,7 @@ class Rerunner
   def rerun_all
     rerun(run_log.failure_numbers)
   end
+
 
   # rerun one past failure
   def rerun(numbers)
@@ -747,7 +755,7 @@ def process_rspec_output(output)
       got_match = /^\s+(?:got|received):\s+(.*)/.match(line)
 
       trace_match = /^\s+#\s+(.*?\/(.*?\.rb)):(\d+):in /.match(line)
-      spec_match = /^\s+#\s+((?:\.\/)?spec\/.*?\/(.*?_spec\.rb)):(\d+):in /.match(line)
+      spec_match = /^\s+#\s+((?:\.\/)?spec\/.*?\/(.*?_spec\.rb)):(\d+):in `block/.match(line)
       # ^^^ https://regexper.com/#%5E%5Cs%2B%23%5Cs%2B%28%28%3F%3A%5C.%5C%2F%29%3Fspec%5C%2F.*%3F%5C%2F%28.*%3F%5C.rb%29%29%3A%28%5Cd%2B%29%3Ain%20
 
       diff_match = /^\s+Diff:\s*/.match(line)
@@ -787,7 +795,7 @@ def process_rspec_output(output)
       elsif spec_match && ! current_failure.spec_file
         current_failure.spec_file = spec_match[2]
         current_failure.spec_file_full_path = spec_match[1]
-        current_failure.spec_file_line_number = spec_match[3]
+        current_failure.spec_file_line_number = spec_match[3].nil? ? nil : spec_match[3].to_i
         top_failure = ""
         in_failure = false
         in_sub_failure = false
@@ -796,7 +804,7 @@ def process_rspec_output(output)
         in_diff = false
         current_failure.file = trace_match[2]
         current_failure.file_full_path = trace_match[1]
-        current_failure.line_number = trace_match[3]
+        current_failure.line_number = trace_match[3].nil? ? nil : trace_match[3].to_i
         unless current_failure.spec_file.nil?
           in_failure = false
           in_sub_failure = false
@@ -805,7 +813,7 @@ def process_rspec_output(output)
       elsif trace_match
         current_failure.file = trace_match[2]
         current_failure.file_full_path = trace_match[1]
-        current_failure.line_number = trace_match[3]
+        current_failure.line_number = trace_match[3].nil? ? nil : trace_match[3].to_i
       elsif diff_match && ! in_diff
         in_diff = true
         current_failure.diff = []
@@ -884,7 +892,7 @@ def run_this(spec, update_file, retries = 0)
   verbosable = VERBOSE || AUTO_VERBOSE > 0
 
   run_line ="bundle exec rspec #{verbosable ? '--format=documentation' : ''} #{spec} 2>&1"
-  # STDERR.puts("XXX running: #{run_line}")
+  STDERR.puts("XXX running: #{run_line}")
   # Redirecting STDERR to STDOUT because rspec is...
   # They've made "interesting" choices about what goes where
   output_buffer = interactive_run_handler(run_line, StringIO.new(""))
@@ -980,29 +988,6 @@ def display_files(past_run_data)
   last_output = nil
   past_run_data.failures.each do | failure |
     puts "#{failure.spec_file_full_path}:#{failure.spec_file_line_number}"
-  end
-end
-
-def rerun_run_number(num, line_mod, past_run_data)
-  idx = num - 1
-  if past_run_data.failures.size > 0 && past_run_data.failures[idx]
-    line_num = past_run_data.failures[idx]["line_number"].to_i
-    line_num += line_mod
-    if past_run_data.failures[idx]["spec_file"].nil?
-      spec = past_run_data.failures[idx]["file_full_path"]
-      spec += ":#{line_num}" if line_num
-    else
-      line_num = past_run_data.failures[idx]["spec_file_line_number"].to_i
-      line_num += line_mod
-
-      spec = past_run_data.failures[idx]["spec_file_full_path"]
-      spec += ":#{line_num}" if line_num
-    end
-    puts "Running: #{spec}\n#{past_run_data.failures[idx]["message"]}\n\n----------------------------\n"
-    run_data = run_this(spec, false)
-    puts NO_FAILURES_TEXT unless run_data.has_failures?
-  else
-    STDERR.puts("I don't seem to have data on run #{idx + 1}")
   end
 end
 
@@ -1120,9 +1105,11 @@ elsif /.*_spec.rb(:\d+)?$/.match(INPUT) \
   # output_run_results(updated_run_data)
   puts NO_FAILURES_TEXT unless updated_run_data.has_failures?
 elsif /^\d+$/.match(INPUT)
-  line_mod = ARGV.size > 1 ? ARGV[1].to_i : 0
+  failure_number = INPUT.to_i
+  offset = ARGV.size > 1 ? ARGV[1].to_i : 0
   # NOTE: display happens during rerun
-  updated_run_data = Rerunner.new(past_run_data).rerun(INPUT.to_i)
+  past_run_data.get_failure_by_number(failure_number).offset = offset
+  updated_run_data = Rerunner.new(past_run_data).rerun(failure_number)
   update_record(updated_run_data)
   # rerunner will take care of mentioning fixed tests
 elsif INPUT == "rerun"
