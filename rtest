@@ -522,7 +522,7 @@ class Rerunner
   private
 
   def fixed_failure_message(failure)
-    "✅ #{SUCCESS_COLOR}FIXED: #{failure.message}#{COLOR_RESET}"
+    "\n✅ #{SUCCESS_COLOR}FIXED: #{failure.message}#{COLOR_RESET}"
   end
 
 
@@ -1002,7 +1002,7 @@ def update_record(new_run_data)
     # the run so "failures" are the only thing we're
     # persisting. If there are no failures let's not
     # waste time reloading this on the next run.
-    File.unlink(PAST_RUN_FILENAME)
+    File.unlink(PAST_RUN_FILENAME) if File.exist? PAST_RUN_FILENAME
   end
   persistable_data
 end
@@ -1120,7 +1120,6 @@ elsif /.*_spec.rb(:\d+)?$/.match(INPUT) \
     # must be a spec file
     updated_run_data = run_this(INPUT, true)
     updated_run_data = update_record_and_display(updated_run_data)
-    puts NO_FAILURES_TEXT unless updated_run_data.has_failures?
   elsif INPUT == "last_file"
     if ! past_run_data.has_failures?
       puts "No file data from last run"
