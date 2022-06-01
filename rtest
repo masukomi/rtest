@@ -33,7 +33,7 @@ Version: VERSION_NUMBER_HERE
 
 USAGE:
 
-rtest [-h | --help | help]
+rtest [-h | --help]
   display these usage instructions
 
 rtest
@@ -81,9 +81,15 @@ rtest rerun
 
 rtest file <number>
   outputs the file path from the test with that number
+  Ex.
+  path/to/failing_spec
 
 rtest files
   outputs a list of all the files+line numbers of failing tests
+  Ex:
+  path/to/failing_spec:43
+  path/to/failing_spec:68
+  path/to/other_spec:44
 
 VERBOSE MODE
 
@@ -170,6 +176,11 @@ OptionParser.new do |parser|
 
   parser.on("-aSECONDS", "--auto-verbose=SECONDS", "Switch to verbose mode if run takes more than SECONDS") do | s |
     @options[:auto_verbose_seconds] = s.to_i
+  end
+
+  parser.on("-h", "--help") do
+    puts USAGE
+    exit 0
   end
 end.parse!
 
@@ -967,20 +978,8 @@ end
 
 def display_files(past_run_data)
   last_output = nil
-  items_displayed = 0
-  past_run_data.failures.each_with_index do | failure, idx |
-    this_output = printable_file_and_line_num(failure)
-    if this_output != last_output
-      puts "#{idx + 1}: #{this_output}"
-      items_displayed += 1
-      last_output = this_output
-    end
-  end
-  if items_displayed < past_run_data.failures.size
-    puts "\n\n\tNOTE: some duplicate results excluded"
-    puts "\tThis just means some common problem is causing multiple"
-    puts "\ttests to fail in the same way."
-    puts "\n\trun `rtest` with no args to see the full list."
+  past_run_data.failures.each do | failure |
+    puts "#{failure.spec_file_full_path}:#{failure.spec_file_line_number}"
   end
 end
 
@@ -1157,17 +1156,16 @@ elsif INPUT == "kill" &&  /^\d+(-\d+)?$/.match(ARGV[1].to_s)
   display_failures(updated_run_data.failures)
   puts NO_FAILURES_TEXT unless updated_run_data.has_failures?
 elsif INPUT == "file" &&  /^\d+$/.match(ARGV[1].to_s)
-  idx = ARGV[1].to_i - 1
-  if past_run_data.size > idx
-    puts past_run_data.failures[idx]["file"]
+  number = ARGV[1].to_i
+  failure = past_run_data.get_failure_by_number(number)
+  if failure
+    puts failure.spec_file_full_path
   else
+    puts "Couldn't find failure numbered: #{number}"
     exit 75 # EX_TEMPFAIL (user input)
   end
 elsif INPUT == "files"
   display_files(past_run_data)
 elsif /\.rb$/.match(INPUT)
   puts "🛑 That's a ruby file, but not an rspec (*_spec.rb) file."
-elsif /^-{0,2}h(?:elp)?$/.match(INPUT)
-  puts USAGE
 end
-
