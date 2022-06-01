@@ -1205,5 +1205,12 @@ elsif INPUT == "file" &&  /^\d+$/.match(REMAINING_ARGS[0].to_s)
 elsif INPUT == "files"
   display_files(past_run_data)
 elsif /\.rb$/.match(INPUT)
-  puts "🛑 That's a ruby file, but not an rspec (*_spec.rb) file."
+  STDERR.puts "🛑 That's a ruby file, but not an rspec (*_spec.rb) file."
+  matches = `find . -name $(basename #{INPUT.gsub(/\.rb$/, "_spec.rb")})`.strip
+  if matches != ""
+    STDERR.puts("Did you mean:")
+    matches.split("\n").each do |match|
+      STDERR.puts"\t#{match}"
+    end
+  end
 end
