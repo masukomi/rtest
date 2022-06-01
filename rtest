@@ -177,8 +177,10 @@ PAST_RUN_FILENAME=".rtest.json"
   :shortened_paths => false,
   :verbose => false,
   :auto_verbose_seconds => 0
-           }
-OptionParser.new do |parser|
+}
+
+
+options_parser = OptionParser.new do |parser|
   parser.banner = "Usage: example.rb [options]"
 
   parser.on("-v", "--verbose", "Run verbosely") do |v|
@@ -202,17 +204,23 @@ OptionParser.new do |parser|
     puts USAGE
     exit 0
   end
-end.parse!
+
+end
+
+numeric_options = ARGV.select{|o| /^-?\d+$/.match(o)}
+foo = options_parser.parse(ARGV.reject{|o| /^-?\d+$/.match(o)})
+OPTIONS=@options
+REMAINING_ARGS = ARGV.reject{|o| /^-\w+\S*/.match(o)} + numeric_options
 
 
-VERBOSE = @options[:verbose]
-if @options[:auto_verbose_seconds] > 0
-  AUTO_VERBOSE = @options[:auto_verbose_seconds]
+VERBOSE = OPTIONS[:verbose]
+if OPTIONS[:auto_verbose_seconds] > 0
+  AUTO_VERBOSE = OPTIONS[:auto_verbose_seconds]
 else
   # "".to_i == 0
   AUTO_VERBOSE = ENV['RTEST_AUTO_VERBOSE'].to_i
 end
-TEST_MODE = @options.has_key? :test_file
+TEST_MODE = OPTIONS.has_key? :test_file
 VERBOSE_TEST = TEST_MODE && VERBOSE
 if VERBOSE_TEST
   puts "Running in Verbose Test mode."
@@ -220,7 +228,7 @@ end
 
 SCREEN_WIDTH= (ENV['COLUMNS'] || `tput cols`.chomp || 80).to_i
 
-INPUT = ARGV.size > 0 ? ARGV[0].strip : nil
+INPUT = REMAINING_ARGS.size > 0 ? REMAINING_ARGS.shift : nil
 
 START=Time.now.to_i
 
@@ -657,7 +665,7 @@ def path_line_truncator(preface, path, suffix, soft_max=SCREEN_WIDTH)
   #for now i'm assuming the default of 8 characters
 
   untruncated_line = preface + path + suffix
-  if ! @options[:shortened_paths]
+  if ! OPTIONS[:shortened_paths]
     return untruncated_line
   else
     tab_length = 8
@@ -1050,9 +1058,9 @@ if File.exist?(PAST_RUN_FILENAME) && ! TEST_MODE
 end
 
 if TEST_MODE
-  confirm_test_files_or_die(@options)
+  confirm_test_files_or_die(OPTIONS)
 
-  generated_run_log = process_rspec_output(unescape(File.read(@options[:test_file])))
+  generated_run_log = process_rspec_output(unescape(File.read(OPTIONS[:test_file])))
   generated_output = unescape(
     with_captured_stdout {
       display_run_log(generated_run_log)
@@ -1060,13 +1068,13 @@ if TEST_MODE
   )
 
   success_message = "✅ looks good. "
-  if generated_output != File.read(@options[:expected_output_file])
+  if generated_output != File.read(OPTIONS[:expected_output_file])
     tempfile = Tempfile.new('foo')
     tempfile.write(generated_output)
     tempfile.close
     # diff it, but tell diff to ignore whitespace changes
     # see note below about \r
-    diff_output = `diff -b #{@options[:expected_output_file]} #{tempfile.path}`.chomp
+    diff_output = `diff -b #{OPTIONS[:expected_output_file]} #{tempfile.path}`.chomp
     if diff_output != ''
       STDERR.puts "Output didn't match expectations. Diff below"
       STDERR.puts "< == expected output"
@@ -1075,7 +1083,7 @@ if TEST_MODE
       STDERR.puts diff_output
       STDERR.puts "--------------------------------------------------------"
 
-      temp_copy = "#{@options[:test_file].sub(".txt", "")}_actual_test_output.txt"
+      temp_copy = "#{OPTIONS[:test_file].sub(".txt", "")}_actual_test_output.txt"
       `cp #{tempfile.path} #{temp_copy}`
       STDERR.puts "generated output saved to: #{temp_copy}"
       tempfile.unlink
@@ -1085,7 +1093,7 @@ if TEST_MODE
       puts 'Note: There were whitespace differences.'
       puts '      This is most likely a result of \r characters not being stripped'
       puts '      from the original rspec output: '
-      puts "        #{@options[:test_file]}"
+      puts "        #{OPTIONS[:test_file]}"
       exit 0
     end
   else
@@ -1131,7 +1139,7 @@ elsif /.*_spec.rb(:\d+)?$/.match(INPUT) \
   puts NO_FAILURES_TEXT unless updated_run_data.has_failures?
 elsif /^\d+$/.match(INPUT)
   failure_number = INPUT.to_i
-  offset = ARGV.size > 1 ? ARGV[1].to_i : 0
+  offset = REMAINING_ARGS.size > 0 ? REMAINING_ARGS[0].to_i : 0
   # NOTE: display happens during rerun
   past_run_data.get_failure_by_number(failure_number).offset = offset
   updated_run_data = Rerunner.new(past_run_data).rerun(failure_number)
@@ -1143,11 +1151,11 @@ elsif INPUT == "rerun"
    exit 0
  end
  Rerunner.new(past_run_data).rerun_all
-elsif INPUT == "kill" &&  /^\d+(-\d+)?$/.match(ARGV[1].to_s)
-  if ! /^\d+-\d+?$/.match(ARGV[1])
-    indexes = Array(ARGV[1].to_i)
+elsif INPUT == "kill" &&  /^\d+(-\d+)?$/.match(REMAINING_ARGS[0].to_s)
+  if ! /^\d+-\d+?$/.match(REMAINING_ARGS[0])
+    indexes = Array(REMAINING_ARGS[0].to_i)
   else
-    x, y = ARGV[1].split('-').map(&:to_i)
+    x, y = REMAINING_ARGS[0].split('-').map(&:to_i)
     # If we work from highest to lowest we can
     # avoid complications resulting
     # from shortening an array while iterating over it
@@ -1167,8 +1175,8 @@ elsif INPUT == "kill" &&  /^\d+(-\d+)?$/.match(ARGV[1].to_s)
   updated_run_data = update_record(past_run_data)
   display_failures(updated_run_data.failures)
   puts NO_FAILURES_TEXT unless updated_run_data.has_failures?
-elsif INPUT == "file" &&  /^\d+$/.match(ARGV[1].to_s)
-  number = ARGV[1].to_i
+elsif INPUT == "file" &&  /^\d+$/.match(REMAINING_ARGS[0].to_s)
+  number = REMAINING_ARGS[1].to_i
   failure = past_run_data.get_failure_by_number(number)
   if failure
     puts failure.spec_file_full_path
