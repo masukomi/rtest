@@ -91,16 +91,28 @@ rtest files
   path/to/failing_spec:68
   path/to/other_spec:44
 
+rtest [-s | --shortened]
+  Truncates file paths to fit the screen width if possible.
+  Guaranteed to always leave the basename intact.
+
 VERBOSE MODE
 
-rtest -v <any prior command>
+rtest [-v|--verbose] <any prior command>
   instead of "marching ants" verbose mode will print out the names
   of classes under test as their respective tests are being run.
 
-RTEST_AUTO_VERBOSE
-  rtest will watch for an RTEST_AUTO_VERBOSE environment varible.
-  If this is set to a number > 0 rtest will automatically turn on
-  verbose mode after that many seconds.
+AUTOMATIC VERBOSE MODE
+
+rtest [-a<seconds> | --auto-verbose=<seconds>]
+  This option specifies the number of seconds after which rtest
+  will automatically switch into verbose mode. Alternately, rtest
+  will watch for an RTEST_AUTO_VERBOSE environment varible.
+
+  Must be an integer greater than 0. The command line option will
+  trump the environment variable. So if you like running in
+  verbose mode by default you can temporarily turn it off by
+  passing in --auto-verbose=0
+
 
 RTEST DEVELOPERS
 
@@ -161,12 +173,20 @@ NO_TESTS_RUN_TEXT="\n -----------------------------------------------\n⚠️   
 
 PAST_RUN_FILENAME=".rtest.json"
 
-@options = {}
+@options = {
+  :shortened_paths => false,
+  :verbose => false,
+  :auto_verbose_seconds => 0
+           }
 OptionParser.new do |parser|
   parser.banner = "Usage: example.rb [options]"
 
   parser.on("-v", "--verbose", "Run verbosely") do |v|
     @options[:verbose] = v
+  end
+
+  parser.on("-s", "--shortened", "Truncate paths to fit screen width") do |s|
+    @options[:shortened_paths] = true
   end
 
   parser.on("-tTEST_FILE", "--test=TEST_FILE", "path to test file") do |tf|
@@ -185,10 +205,11 @@ OptionParser.new do |parser|
 end.parse!
 
 
-VERBOSE = @options.has_key? :verbose
-if @options.has_key?(:auto_verbose_seconds)
+VERBOSE = @options[:verbose]
+if @options[:auto_verbose_seconds] > 0
   AUTO_VERBOSE = @options[:auto_verbose_seconds]
 else
+  # "".to_i == 0
   AUTO_VERBOSE = ENV['RTEST_AUTO_VERBOSE'].to_i
 end
 TEST_MODE = @options.has_key? :test_file
@@ -634,38 +655,42 @@ end
 def path_line_truncator(preface, path, suffix, soft_max=SCREEN_WIDTH)
   #TODO calculate how long a tab stop is
   #for now i'm assuming the default of 8 characters
-  tab_length = 8
-  preface ||= ""
-  unescaped_preface = unescape(preface)
-  unescaped_suffix = unescape(suffix)
-  non_file_length =  unescaped_preface.length + (unescaped_preface.gsub(/[^\t]/, '').length * (tab_length - 1)) + unescaped_suffix.length
 
-  basename = File.basename(path)
-  elipsis_basename = "…#{File::SEPARATOR}#{basename}"
-
-  if basename.length >= soft_max
-    return elipsis_basename
+  untruncated_line = preface + path + suffix
+  if ! @options[:shortened_paths]
+    return untruncated_line
   else
-    available_chars = soft_max - elipsis_basename.length - non_file_length
-    path_chunks = path.split(File::SEPARATOR)
-    returnable = []
+    tab_length = 8
+    preface ||= ""
+    unescaped_preface = unescape(preface)
+    unescaped_suffix = unescape(suffix)
+    non_file_length =  unescaped_preface.length + (unescaped_preface.gsub(/[^\t]/, '').length * (tab_length - 1)) + unescaped_suffix.length
 
-    # efficient? no, not really, but easy to think about? yes
-    # and yeah, there's got to be a better way to do this.
-    # TODO: refactor this to be less... kludgey
-    (0..path_chunks.length).each do | index |
-      if index != path_chunks.length
-        chunk = path_chunks[index]
-        returnable << chunk
-        if returnable.join(File::SEPARATOR).length > available_chars
-          return preface +
-                 (returnable[0..-2] + [elipsis_basename]).join(File::SEPARATOR) +
-                 suffix
+    basename = File.basename(path)
+    elipsis_basename = "…#{File::SEPARATOR}#{basename}"
+
+    if basename.length >= soft_max
+      return elipsis_basename
+    else
+      available_chars = soft_max - elipsis_basename.length - non_file_length
+      path_chunks = path.split(File::SEPARATOR)
+      returnable = []
+
+      # efficient? no, not really, but easy to think about? yes
+      # and yeah, there's got to be a better way to do this.
+      # TODO: refactor this to be less... kludgey
+      (0..path_chunks.length).each do | index |
+        if index != path_chunks.length
+          chunk = path_chunks[index]
+          returnable << chunk
+          if returnable.join(File::SEPARATOR).length > available_chars
+            return preface +
+                  (returnable[0..-2] + [elipsis_basename]).join(File::SEPARATOR) +
+                  suffix
+          end
+        else
+          return untruncated_line
         end
-      else
-        return preface +
-               (returnable + [elipsis_basename]).join(File::SEPARATOR) +
-               suffix
       end
     end
   end
@@ -892,7 +917,7 @@ def run_this(spec, update_file, retries = 0)
   verbosable = VERBOSE || AUTO_VERBOSE > 0
 
   run_line ="bundle exec rspec #{verbosable ? '--format=documentation' : ''} #{spec} 2>&1"
-  STDERR.puts("XXX running: #{run_line}")
+  # STDERR.puts("XXX running: #{run_line}")
   # Redirecting STDERR to STDOUT because rspec is...
   # They've made "interesting" choices about what goes where
   output_buffer = interactive_run_handler(run_line, StringIO.new(""))
