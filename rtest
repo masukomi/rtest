@@ -129,6 +129,9 @@ rtest [-t<TEST_FILE_PATH>|--test=<TEST_FILE_PATH>]
   "Running message|path/to/spec" line
   or the "...." line.
 
+rtest [-d|--debug]
+  outputs information about processed data
+
 EOL
 USAGE.freeze
 
@@ -176,6 +179,7 @@ PAST_RUN_FILENAME=".rtest.json"
 @options = {
   :shortened_paths => false,
   :verbose => false,
+  :debug => false,
   :auto_verbose_seconds => 0,
   :rspec => false
 }
@@ -205,6 +209,10 @@ options_parser = OptionParser.new do |parser|
     @options[:rspec] = number.to_i
   end
 
+  parser.on("-d", "--debug", "Debug mode") do
+    @options[:debug] = true
+  end
+
   parser.on("-h", "--help") do
     puts USAGE
     exit 0
@@ -231,6 +239,7 @@ VERBOSE_TEST = TEST_MODE && VERBOSE
 if VERBOSE_TEST
   puts "Running in Verbose Test mode."
 end
+DEBUG = OPTIONS[:debug]
 
 SCREEN_WIDTH= (ENV['COLUMNS'] || `tput cols`.chomp || 80).to_i
 
@@ -758,9 +767,9 @@ def process_rspec_output(output)
   top_failure=""
   in_sub_failure = false
   output_lines.each_with_index do | line, idx |
-    if VERBOSE_TEST
+    if VERBOSE_TEST || DEBUG
       STDERR.puts("-->" + line)
-      STDERR.puts("XXX in failure: #{in_failure}")
+      STDERR.puts("XXX in failure: #{in_failure}") if VERBOSE_TEST
     end
 
     if not in_failure
