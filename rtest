@@ -933,6 +933,19 @@ def rerun_failure(failure)
   run_this(failure.as_rspec_arg, false)
 end
 
+# when the run had issues
+# try and extract goodness from it.
+def extract_meaningful_failure(output)
+  lines = output.split(/\r\n|\n/)
+
+  return_lines = []
+  lines.each do |line|
+    return_lines << line
+    break if /^# .*:in/.match(line)
+  end
+  return_lines
+end
+
 # returns a RunLog
 def run_this(spec, update_file, retries = 0)
   # in a successful run there's nothing in STDERR (2)
@@ -955,7 +968,8 @@ def run_this(spec, update_file, retries = 0)
   # STDERR.puts("XXX escaped output: \n#{output}")
 
   if output.match(/^[A-Z]+[a-z]+\w+Error:/)
-    puts "\n⚠️ Problems encountered: \n\t#{output.split("\n").first(10).join("\n\t")}\n..."
+    failure_extract = extract_meaningful_failure(output)
+    puts "\n⚠️ Problems encountered: \n\t#{failure_extract.join("\n\t")}\n..."
     # for whatever reason rspec sends SOME errors to standard out
     # not standard error
     exit 1
