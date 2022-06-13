@@ -74,10 +74,13 @@ rtest kill <number>-<number>
   removes the tests with numbers within the specified
   range of past failure numbers (inclusive).
 
-rtest rerun
-  runs all the past failures
-  functionally identical to calling with just the
-  number for each of the known failures.
+rtest rerun [<n>|<range>]
+  by itself this runs all the past failures
+
+  if you pass in a number, or a range:
+  E.g. "1" or "3-5" it will rerun the specified
+  tests. This behavior is the same as
+  calling rtest with just the numbers.
 
 rtest file <number>
   outputs the file path from the test with that number
@@ -1206,14 +1209,20 @@ elsif INPUT == "rerun"
    puts "No past failures found to rerun."
    exit 0
  end
- if REMAINING_ARGS.size > 0 && REMAINING_ARGS[0].to_i > 0
-   STDERR.puts "To rerun a specific test just say rtest <n>"
-   STDERR.puts "Run \"rtest -h\" for full usage instructions"
-   STDERR.puts "Use \"rtest rerun\" to rerun _all_ the failures"
-   exit 1
+ if REMAINING_ARGS.size > 0
+   next_arg = REMAINING_ARGS[0]
+   if is_arg_range(next_arg)
+    Rerunner.new(past_run_data).rerun(range_arg_to_array(next_arg))
+   elsif /^\d+$/.match(next_arg) && next_arg.to_i > 0
+     Rerunner.new(past_run_data).rerun([next_arg.to_i])
+   else
+     STDERR.puts("unexpected arguments passed to rerun.")
+     STDERR.puts("Run \"rtest --help\" to see usage instructions")
+     exit 1
+   end
  end
-
  Rerunner.new(past_run_data).rerun_all
+
 elsif INPUT == "kill" &&  /^\d+(-\d+)?$/.match(REMAINING_ARGS[0].to_s)
   if ! is_arg_range(REMAINING_ARGS[0])
     indexes = Array(REMAINING_ARGS[0].to_i)
