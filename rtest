@@ -95,6 +95,14 @@ rtest [-s | --shortened]
   Truncates file paths to fit the screen width if possible.
   Guaranteed to always leave the basename intact.
 
+rtest [--rspec=NUMBER]
+  outputs the rspec command required to rerun the
+  specified failure in rspec.
+
+  In fish shell, for example, you could say
+    eval (rtest --rspec=4)
+  to run failure #4 in rspec directly.
+
 VERBOSE MODE
 
 rtest [-v|--verbose] <any prior command>
@@ -1077,6 +1085,14 @@ def confirm_test_files_or_die(options)
   end
 end
 
+def is_arg_range(arg)
+  /^\d+-\d+?$/.match(arg)
+end
+
+def range_arg_to_array(arg)
+  arg.split('-').map(&:to_i)
+end
+
 
 # -------------------------
 
@@ -1199,10 +1215,10 @@ elsif INPUT == "rerun"
 
  Rerunner.new(past_run_data).rerun_all
 elsif INPUT == "kill" &&  /^\d+(-\d+)?$/.match(REMAINING_ARGS[0].to_s)
-  if ! /^\d+-\d+?$/.match(REMAINING_ARGS[0])
+  if ! is_arg_range(REMAINING_ARGS[0])
     indexes = Array(REMAINING_ARGS[0].to_i)
   else
-    x, y = REMAINING_ARGS[0].split('-').map(&:to_i)
+    x, y = range_arg_to_array(REMAINING_ARGS[0])
     # If we work from highest to lowest we can
     # avoid complications resulting
     # from shortening an array while iterating over it
