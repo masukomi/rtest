@@ -1190,6 +1190,13 @@ elsif INPUT == "rerun"
    puts "No past failures found to rerun."
    exit 0
  end
+ if REMAINING_ARGS.size > 0 && REMAINING_ARGS[0].to_i > 0
+   STDERR.puts "To rerun a specific test just say rtest <n>"
+   STDERR.puts "Run \"rtest -h\" for full usage instructions"
+   STDERR.puts "Use \"rtest rerun\" to rerun _all_ the failures"
+   exit 1
+ end
+
  Rerunner.new(past_run_data).rerun_all
 elsif INPUT == "kill" &&  /^\d+(-\d+)?$/.match(REMAINING_ARGS[0].to_s)
   if ! /^\d+-\d+?$/.match(REMAINING_ARGS[0])
