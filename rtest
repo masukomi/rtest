@@ -1158,6 +1158,11 @@ elsif /.*_spec.rb(:\d+)?$/.match(INPUT) \
   || INPUT=="last_file" \
   || /\S+\/$/.match(INPUT) # ends with a slash, prolly a directory
   if INPUT != "all" && INPUT != "last_file"
+    if ! File.exist?(INPUT)
+      STDERR.puts("Could not find specified file or directory:\n#{INPUT}")
+      STDERR.puts("Please try again with a valid path.")
+      exit 64 # EX_USAGE
+    end
     puts "Running specs in #{INPUT}\n"
     # must be a spec file
     updated_run_data = run_this(INPUT, true)
