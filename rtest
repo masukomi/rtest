@@ -152,6 +152,23 @@ SUCCESS_COLOR="\e[38;2;7;198;25m"
 
 RTEST_DIR=__dir__
 
+# The regex to match ANSI codes
+# from https://github.com/piotrmurach/strings-ansi
+ANSI_MATCHER = %r{
+  (?>\033(
+    \[[\[?>!]?\d*(;\d+)*[ ]?[a-zA-Z~@$^\]_\{\\] # graphics
+    |
+    \#?\d # cursor modes
+    |
+    [)(%+\-*/. ](\d|[a-zA-Z@=%]|) # character sets
+    |
+    O[p-xA-Z] # special keys
+    |
+    [a-zA-Z=><~\}|] # cursor movement
+    |
+    \]8;[^;]*;.*?(\033\\|\07) # hyperlink
+  ))
+}x.freeze
 
 NO_FAILURES_TEXT="\n✅ No failures."
 NO_TESTS_RUN_TEXT="\n -----------------------------------------------\n⚠️   NOTE: This is only a replay of past output."
@@ -646,7 +663,9 @@ def display_failure(failure, index = -1)
   puts "\n\t\tDiff:\n#{failure.diff.join("\n\t\t")}" if failure.diff
 end
 
-
+def unescape(text)
+  text.gsub(ANSI_MATCHER, '')
+end
 # a path line is a line that ends in a file path
 # it may or may not, have a preface.
 def path_line_truncator(preface, path, suffix, soft_max=SCREEN_WIDTH)
