@@ -12,6 +12,7 @@ require 'json'
 require 'open3'
 require 'optparse'
 require 'tempfile'
+require 'set'
 
 # in case you use byebug or binding.pry
 require 'expect'
@@ -305,25 +306,17 @@ class Failure
     self.spec_file_line_number.nil? ? "" : ":" + (self.spec_file_line_number + self.offset).to_s
   end
 
-  def to_json
-    {
-      "details"               => self.details,
-      "diff"                  => self.diff,
-      # display number is recalculated when read from file
-      # "display_number"        => self.display_number,
-      "expected"              => self.expected,
-      "file"                  => self.file,
-      "file_full_path"        => self.file_full_path,
-      "got"                   => self.got,
-      # "killable"              => self.killable, # never persisted
-      "line_number"           => self.line_number,
-      "message"               => self.message,
-      # "offset"                => self.offset, # never persisted
-      # "persisted"             => self.persisted, # duh
-      "spec_file"             => self.spec_file,
-      "spec_file_full_path"   => self.spec_file_full_path,
-      "spec_file_line_number" => self.spec_file_line_number
-    }
+  def to_hash
+    # instance_variables returns something like
+    # [:@foo, :@bar, :@baz]
+    # and self.send(:@foo) is an error
+
+    unpersistable_attrs = Set.new( %i[display_number killable offset persisted] )
+    self.instance_variables
+      .map{ |x| x.to_s.sub("@", "").to_sym }
+      .reject{ |x| unpersistable_attrs.include? x }
+      .map{ |x| [x, self.send(x)]}
+      .flatten
   end
 
   def self.from_json(json, display_number = nil)
@@ -439,7 +432,9 @@ class RunLog
   # stored about a run.
   # Over time I expect more metadata will be added
   def to_json()
-    {"failures" => failures.map{ |f| f.killable? ? nil : f.to_json }.flatten }.to_json
+    JSON.pretty_generate(
+      {"failures" => failures.map{ |f| f.killable? ? nil : f.to_hash }.flatten }
+    )
   end
 
   def rerun_all
