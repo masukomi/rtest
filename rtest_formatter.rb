@@ -31,7 +31,7 @@ require 'json'
 class Failure
   attr_accessor :backtrace,
                 :description,
-                :error_file,
+                :error_file_path,
                 :error_line_number,
                 :error_method,
                 :expected,
@@ -66,7 +66,7 @@ class Failure
     JSON.pretty_generate({
       backtrace: filtered_backtrace,
       description: description,
-      error_file: error_file,
+      error_file_path: error_file_path,
       error_line_number: error_line_number,
       error_method: error_method,
       expected: expected,
@@ -130,7 +130,7 @@ class Failure
     lines.each do | line |
       m = /(.*(?<!_spec).rb):(\d+):in.*?`(.*)'/.match(line)
       if m
-        self.error_file        = m[1]
+        self.error_file_path   = m[1]
         self.error_line_number = m[2]
         self.error_method      = m[3]
       end
@@ -242,6 +242,7 @@ class RtestFormatter
 
   # notification: NullNotification http://www.rubydoc.info/gems/rspec-core/RSpec/Core/Notifications/NullNotification
   def close(_)
-    @output << "{\n#{@failures.map{ |f|f.to_json }.join(",\n")}\n}"
+    @output << "BEGIN_RTEST_JSON"
+    @output << "[\n#{@failures.map{ |f|f.to_json }.join(",\n")}\n]"
   end
 end
