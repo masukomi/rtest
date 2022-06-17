@@ -113,19 +113,6 @@ rtest [-v|--verbose] <any prior command>
   instead of "marching ants" verbose mode will print out the names
   of classes under test as their respective tests are being run.
 
-AUTOMATIC VERBOSE MODE
-
-rtest [-a<seconds> | --auto-verbose=<seconds>]
-  This option specifies the number of seconds after which rtest
-  will automatically switch into verbose mode. Alternately, rtest
-  will watch for an RTEST_AUTO_VERBOSE environment varible.
-
-  Must be an integer greater than 0. The command line option will
-  trump the environment variable. So if you like running in
-  verbose mode by default you can temporarily turn it off by
-  passing in --auto-verbose=0
-
-
 RTEST DEVELOPERS
 
 rtest [-t<TEST_FILE_PATH>|--test=<TEST_FILE_PATH>]
@@ -163,24 +150,7 @@ COLOR_RESET="\e[0m"
 DETAIL_LINE_COLOR="\e[38;2;255;140;0m"
 SUCCESS_COLOR="\e[38;2;7;198;25m"
 
-
-# The regex to match ANSI codes
-# from https://github.com/piotrmurach/strings-ansi
-ANSI_MATCHER = %r{
-  (?>\033(
-    \[[\[?>!]?\d*(;\d+)*[ ]?[a-zA-Z~@$^\]_\{\\] # graphics
-    |
-    \#?\d # cursor modes
-    |
-    [)(%+\-*/. ](\d|[a-zA-Z@=%]|) # character sets
-    |
-    O[p-xA-Z] # special keys
-    |
-    [a-zA-Z=><~\}|] # cursor movement
-    |
-    \]8;[^;]*;.*?(\033\\|\07) # hyperlink
-  ))
-}x.freeze
+RTEST_DIR=__dir__
 
 
 NO_FAILURES_TEXT="\n✅ No failures."
@@ -261,21 +231,47 @@ START=Time.now.to_i
 
 #-----------------------
 class Failure
-  attr_accessor :details,
-                :diff,
-                :display_number,
+  UNPERSISTABLE_ATTRS = Set.new( %i[display_number killable offset persisted] ).freeze
+
+  attr_accessor :backtrace,
+                :description,
+                :error_file_path,
+                :error_line_number,
+                :error_method,
                 :expected,
-                :file,
-                :file_full_path,
                 :got,
+                :rspec_arg,
+                :run_time,
+                :spec_file_path,
+                :spec_line_number,
+                :spec_location,
+                :test_name,
+
+                # meta
+                :display_number,
+
+                # unpersistable
+                :display_number,
                 :killable,
-                :line_number,
                 :offset,
-                :message,
-                :persisted,
-                :spec_file,
-                :spec_file_full_path,
-                :spec_file_line_number
+                :persisted
+
+
+  # attr_accessor :details,
+  #               :diff,
+  #               :display_number,
+  #               :expected,
+  #               :file,
+  #               :file_full_path,
+  #               :got,
+  #               :killable,
+  #               :line_number,
+  #               :offset,
+  #               :message,
+  #               :persisted,
+  #               :spec_file,
+  #               :spec_file_path,
+  #               :spec_line_number
 
   def initialize()
     self.killable = false
@@ -283,7 +279,10 @@ class Failure
   end
 
   def empty?
-    ! (details || diff || expected || file || file_full_path || got || line_number || message || spec_file || spec_file_full_path || spec_file_line_number)
+    persistable_attr_symbols
+      .map{ |x| self.send(x)}
+      .reject{ |x| x.nil? || x == ''}
+      .empty?
   end
 
   def killable?
@@ -294,28 +293,15 @@ class Failure
   end
 
   def rerunable?
-    self.spec_file_full_path || self.spec_file
-  end
-
-  def as_rspec_arg
-    (self.spec_file_full_path || self.spec_file) +
-      self.spec_arg_line_number
+    ! self.rspec_arg.blank?
   end
 
   def spec_arg_line_number
-    self.spec_file_line_number.nil? ? "" : ":" + (self.spec_file_line_number + self.offset).to_s
+    self.spec_line_number.nil? ? "" : ":" + (self.spec_line_number + self.offset).to_s
   end
 
   def to_hash
-    # instance_variables returns something like
-    # [:@foo, :@bar, :@baz]
-    # and self.send(:@foo) is an error
-
-    unpersistable_attrs = Set.new( %i[display_number killable offset persisted] )
-    self.instance_variables
-      .map{ |x| x.to_s.sub("@", "").to_sym }
-      .reject{ |x| unpersistable_attrs.include? x }
-      .map{ |x| [x, self.send(x)]}
+    persistable_attr_symbols.map{ |x| [x, self.send(x)]}
       .flatten
   end
 
@@ -327,6 +313,16 @@ class Failure
     new_failure.display_number = display_number if display_number
     new_failure.persisted = true
     new_failure
+  end
+
+  private
+  def persistable_attr_symbols
+    # instance_variables returns something like
+    # [:@foo, :@bar, :@baz]
+    # and self.send(:@foo) is an error
+    self.instance_variables
+      .map{ |x| x.to_s.sub("@", "").to_sym }
+      .reject{ |x| UNPERSISTABLE_ATTRS.include? x }
   end
 end
 
@@ -355,12 +351,6 @@ class Killer
         # any_bad_numbers = true
       end
     end
-    # if any_bad_numbers
-    #   run_log.failures.each do | f |
-    #     # next if f.killable?
-    #     STDERR.puts "#{f.display_number}) #{f.message}"
-    #   end
-    # end
   end
 end
 
@@ -378,23 +368,17 @@ class RunLog
 
     rl
   end
+  def self.from_rspec_json(json_string)
+    json = JSON.parse(json_string)
+    rl = RunLog.new()
+    json.each do |failure_hash|
+      rl.failures << Failure.from_json(failure_hash)
+    end
+  end
 
   # It is expected that the file won't exist
   # In that scenario we just create a new RunLog
-  # File looks like this:
-  # {
-  #   failures: [
-  #     {
-  #       message: "",
-  #       details: "",
-  #       file: "",
-  #       line_number: 123
-  #       expected: ""
-  #       got: "",
-  #       diff: ""
-  #     }
-  #   ]
-  # }
+  # File
   def self.from_file(file_path)
     begin
       self.from_json(JSON.parse(File.read(file_path)))
@@ -447,13 +431,13 @@ class RunLog
 
   def last_file
     self.failures
-      .map{|f| f.spec_file_full_path || f.file }
+      .map{|f| f.spec_file_path || f.file }
       .select{|f| f.end_with?("_spec.rb")}
       .last
   end
 
   def failures_in_file(spec_file)
-    self.failures.select{ |f| f.spec_file_full_path == spec_file }
+    self.failures.select{ |f| f.spec_file_path == spec_file }
   end
 
   def new_failures
@@ -572,13 +556,9 @@ rescue
   false
 end
 
-def unescape(text)
-  text.gsub(ANSI_MATCHER, '')
-end
 def buffer_last_line(buffer)
   last_line = buffer.string.split("\n").last
-  return nil unless last_line
-  unescape(last_line)
+  last_line
 end
 
 def definite_debugger_line(line)
@@ -619,22 +599,10 @@ def read_into_buffer(reader, buffer)
     temp_buffer.putc(char)
   end
 
-  temp_string = unescape(temp_buffer.string)
+  temp_string = temp_buffer.string
   if temp_string.length > 0
-    if currently_verbose? && temp_string.strip.length > 0
-      test_names = extract_test_names(temp_string)
-      if test_names.size > 0
-        puts "\t⤏ #{test_names.join("\n\t⤏ ")}"
-      end
-    end
-
     buffer << temp_string
   end
-end
-
-def extract_test_names(string)
-  lines = string.split("\n")
-  lines.select{|l| /^[A-Z][\w\d]*(?:::[A-Z][\w\d]*)*\s*$/.match(l)}
 end
 
 ################
@@ -661,9 +629,9 @@ end
 
 def display_failure(failure, index = -1)
   if failure.display_number
-    puts "\n#{ERROR_LINE_COLOR}#{failure.display_number}: #{failure.message}#{COLOR_RESET}\n"
+    puts "\n#{ERROR_LINE_COLOR}#{failure.display_number}: #{failure.description}#{COLOR_RESET}\n"
   else
-    puts "\n#{ERROR_LINE_COLOR}#{index + 1}: #{failure.message}#{COLOR_RESET}\n"
+    puts "\n#{ERROR_LINE_COLOR}#{index + 1}: #{failure.description}#{COLOR_RESET}\n"
   end
   puts printable_file_and_line_num(failure)
 
@@ -727,170 +695,39 @@ end
 
 def printable_file_and_line_num(failure)
   lines = []
-  if failure.spec_file
-	# details on fd and what it takes can be found here
-	# https://github.com/sharkdp/fd#readme
 
-    if failure.file
-      # if so, we're going to display the spec error & where it blew up in the file
-      lines << path_line_truncator(
-        "\tFAILED SPEC: #{ERROR_HERE_LINE_COLOR}",
-        failure.spec_file_full_path,
-        "#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure.spec_file_line_number}#{COLOR_RESET}"
-      )
-
-      lines <<
-        path_line_truncator("\tERROR HERE : #{ERROR_HERE_LINE_COLOR}",
-                            failure.file_full_path,
-                            "#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure.line_number}#{COLOR_RESET}"
-        )
-    else
-      # we're _only_ going to display the spec file where the error occurred.
-      lines <<  path_line_truncator("\tERROR HERE : #{ERROR_HERE_LINE_COLOR}",
-                                    failure.spec_file_full_path,
-                                    "#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure.spec_file_line_number}#{COLOR_RESET}"
-                )
-    end
-    lines.join("\n")
-  else
-    # what is even happening?!
-    path_line_truncator(
-      "\tERROR HERE : #{ERROR_HERE_LINE_COLOR}",
-      failure.file,
-      "#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure.line_number}#{COLOR_RESET}"
+  if failure.spec_file_path
+    # if so, we're going to display the spec error & where it blew up in the file
+    lines << path_line_truncator(
+      "\tFAILED SPEC: #{ERROR_HERE_LINE_COLOR}",
+      failure.spec_file_path,
+      "#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure.spec_line_number}#{COLOR_RESET}"
     )
+
   end
+  if failure.error_file_path
+      path_line_truncator("\tERROR HERE : #{ERROR_HERE_LINE_COLOR}",
+                          failure.error_file_path,
+                          "#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure.line_number}#{COLOR_RESET}"
+      )
+  end
+  lines.join("\n")
 end
 
 
 # returns a RunLog
 def process_rspec_output(output)
   new_run_data = RunLog.new()
-  output_lines = output.split("\n")
-  in_failure = false
-  in_diff = false
-  current_failure = Failure.new()
-  top_failure=""
-  in_sub_failure = false
-  output_lines.each_with_index do | line, idx |
-    if VERBOSE_TEST || DEBUG
-      STDERR.puts("-->" + line)
-      STDERR.puts("XXX in failure: #{in_failure}") if VERBOSE_TEST
-    end
-
-    if not in_failure
-      match_data =  /^\s+\d+(\.\d+)*\)\s+(.*)/.match(line)
-      STDERR.puts("XXX match_data: #{match_data.inspect}") if VERBOSE_TEST
-
-      if match_data
-        STDERR.puts("XXX found failure start") if VERBOSE_TEST
-
-        # starting a new failure
-        in_failure = true
-        in_sub_failure = match_data[1].nil? ? false : true
-        # if ! in_sub_failure
-          unless current_failure.empty?
-            new_run_data.failures << current_failure
-            #display_failure(current_failure, new_run_data.failures.length - 1)
-          end
-        # end
-        top_failure = match_data[2]
-        current_failure = Failure.new()
-        current_failure.message = match_data[2]
-      # else, random crap we don't care about
-      end
+  before_rtest_json = true
+  json_lines = []
+  output.split("\n").each do |line|
+    if before_rtest_json && line == "BEGIN_RTEST_JSON"
+      before_rtest_json = false
+      next
+    elsif before_rtest_json
+      next
     else
-      # in a failure, and past the initial line
-      details_match = /^\s+(\d+(?:\.\d+)*\)\s+)?Failure\/Error:\s*(.*)/.match(line)
-
-      expected_match = /^\s+expected:\s+(.*)/.match(line)
-
-      # seriously RSpec? Why can't you be consistent?
-      got_match = /^\s+(?:got|received):\s+(.*)/.match(line)
-
-      trace_match = /^\s+#\s+(.*?\/(.*?\.rb)):(\d+):in /.match(line)
-      spec_match = /^\s+#\s+((?:\.\/)?spec\/.*?\/(.*?_spec\.rb)):(\d+):in `block/.match(line)
-      # ^^^ https://regexper.com/#%5E%5Cs%2B%23%5Cs%2B%28%28%3F%3A%5C.%5C%2F%29%3Fspec%5C%2F.*%3F%5C%2F%28.*%3F%5C.rb%29%29%3A%28%5Cd%2B%29%3Ain%20
-
-      diff_match = /^\s+Diff:\s*/.match(line)
-
-      something_match = /^\s+\w+.*/.match(line)
-
-      finished_match = /^Finished in \d+\.\d+ seconds/.match(line)
-
-      if VERBOSE_TEST
-        STDERR.puts("XXX details_match: #{details_match.inspect}")
-        STDERR.puts("XXX expected_match: #{expected_match.inspect}")
-        STDERR.puts("XXX got_match: #{got_match.inspect}")
-        STDERR.puts("XXX trace_match: #{trace_match.inspect}")
-        STDERR.puts("XXX spec_match: #{spec_match.inspect}")
-        STDERR.puts("XXX diff_match: #{diff_match.inspect}")
-        STDERR.puts("XXX something_match: #{something_match.inspect}")
-        STDERR.puts("XXX finished_match: #{finished_match.inspect}")
-      end
-
-
-      if finished_match
-        in_sub_failure = false
-        in_failure=false
-      elsif details_match
-        if ! details_match[1].nil?
-          # we're in a sub-failure
-          in_sub_failure = true
-          current_failure =  Failure.new # reset
-          current_failure.message = "#{top_failure}\n\t#{details_match[2]}"
-        end
-
-        current_failure.details = details_match[2]
-      elsif expected_match
-        current_failure.expected = expected_match[1]
-      elsif got_match
-        current_failure.got = got_match[1]
-      elsif spec_match && ! current_failure.spec_file
-        current_failure.spec_file = spec_match[2]
-        current_failure.spec_file_full_path = spec_match[1]
-        current_failure.spec_file_line_number = spec_match[3].nil? ? nil : spec_match[3].to_i
-        top_failure = ""
-        in_failure = false
-        in_sub_failure = false
-        in_diff = false
-      elsif trace_match and (current_failure.file || current_failure.spec_file)
-        in_diff = false
-        current_failure.file = trace_match[2]
-        current_failure.file_full_path = trace_match[1]
-        current_failure.line_number = trace_match[3].nil? ? nil : trace_match[3].to_i
-        unless current_failure.spec_file.nil?
-          in_failure = false
-          in_sub_failure = false
-          top_failure = ""
-        end
-      elsif trace_match
-        current_failure.file = trace_match[2]
-        current_failure.file_full_path = trace_match[1]
-        current_failure.line_number = trace_match[3].nil? ? nil : trace_match[3].to_i
-      elsif diff_match && ! in_diff
-        in_diff = true
-        current_failure.diff = []
-          # ends when we get to the trace_match
-          # don't want the first line since it's just "Diff:"
-      elsif in_diff
-        current_failure.diff << line.lstrip
-      elsif current_failure.details
-        #we're somewhere between the Failure/Error line
-        #and the stack trace
-        if ! is_ignorable_detail(line)
-          current_failure.details += "\n#{line}"
-        end
-      elsif in_sub_failure && ! something_match.nil?
-        if ! is_ignorable_detail(line)
-          if current_failure.details
-            current_failure.details += "\n#{line}"
-          else
-            current_failure.details = "\n#{line}"
-          end
-        end
-      end
-
+      json_lines << line
     end
   end
   unless current_failure.empty?
@@ -936,10 +773,10 @@ end
 # returns a RunLog
 def rerun_failure(failure)
   #TODO warn if not rerunable
-  run_this(failure.as_rspec_arg, false)
+  run_this(failure.rspec_arg, false)
 end
 
-# when the run had issues
+# when the run had issues beyond just test failures
 # try and extract goodness from it.
 def extract_meaningful_failure(output)
   lines = output.split(/\r\n|\n/)
@@ -952,13 +789,14 @@ def extract_meaningful_failure(output)
   return_lines
 end
 
+def path_to_formatter
+  RTEST_DIR + File::SEPARATOR + "rtest_formatter.rb"
+end
 # returns a RunLog
 def run_this(spec, update_file, retries = 0)
   # in a successful run there's nothing in STDERR (2)
   # it's all STDOUT (1)
-  verbosable = VERBOSE || AUTO_VERBOSE > 0
-
-  run_line ="bundle exec rspec #{verbosable ? '--format=documentation' : ''} #{spec} 2>&1"
+  run_line ="bundle exec rspec #{spec} --require #{path_to_formatter} --format RtestFormatter 2>&1"
   # STDERR.puts("XXX running: #{run_line}")
   # Redirecting STDERR to STDOUT because rspec is...
   # They've made "interesting" choices about what goes where
@@ -1053,14 +891,9 @@ def display_run_log(run_log)
 end
 
 def display_files(past_run_data)
-  last_output = nil
   past_run_data.failures.each do | failure |
-    puts "#{failure.spec_file_full_path}:#{failure.spec_file_line_number}"
+    puts "#{failure.rspec_arg}"
   end
-end
-
-def is_ignorable_detail(line)
-  !! /^\s+#\s+/.match(line)
 end
 
 def with_captured_stdout
@@ -1100,52 +933,9 @@ if File.exist?(PAST_RUN_FILENAME) && ! TEST_MODE
   past_run_data = RunLog.from_file(PAST_RUN_FILENAME)
 end
 
-if TEST_MODE
-  confirm_test_files_or_die(OPTIONS)
-
-  generated_run_log = process_rspec_output(unescape(File.read(OPTIONS[:test_file])))
-  generated_output = unescape(
-    with_captured_stdout {
-      display_run_log(generated_run_log)
-    }
-  )
-
-  success_message = "✅ looks good. "
-  if generated_output != File.read(OPTIONS[:expected_output_file])
-    tempfile = Tempfile.new('foo')
-    tempfile.write(generated_output)
-    tempfile.close
-    # diff it, but tell diff to ignore whitespace changes
-    # see note below about \r
-    diff_output = `diff -b #{OPTIONS[:expected_output_file]} #{tempfile.path}`.chomp
-    if diff_output != ''
-      STDERR.puts "Output didn't match expectations. Diff below"
-      STDERR.puts "< == expected output"
-      STDERR.puts "> == actual output"
-      STDERR.puts "--------------------------------------------------------"
-      STDERR.puts diff_output
-      STDERR.puts "--------------------------------------------------------"
-
-      temp_copy = "#{OPTIONS[:test_file].sub(".txt", "")}_actual_test_output.txt"
-      `cp #{tempfile.path} #{temp_copy}`
-      STDERR.puts "generated output saved to: #{temp_copy}"
-      tempfile.unlink
-      exit 1
-    else
-      puts "#{success_message}"
-      puts 'Note: There were whitespace differences.'
-      puts '      This is most likely a result of \r characters not being stripped'
-      puts '      from the original rspec output: '
-      puts "        #{OPTIONS[:test_file]}"
-      exit 0
-    end
-  else
-    puts success_message
-    exit 0
-  end
 
 
-elsif INPUT.nil? && ! OPTIONS[:rspec]
+if INPUT.nil? && ! OPTIONS[:rspec]
   display_run_log(past_run_data)
   puts NO_TESTS_RUN_TEXT
 elsif /.*_spec.rb(:\d+)?$/.match(INPUT) \
@@ -1199,7 +989,7 @@ elsif /^\d+$/.match(INPUT) || OPTIONS[:rspec]
     # we _could_ do it the way we do the other interactive stuff
     # but the idea here was to make it trivial to rerun something in
     # rspec directly
-    puts "bundle exec rspec #{failure.as_rspec_arg}"
+    puts "bundle exec rspec #{failure.rspec_arg}"
     exit 0
   end
   update_record(updated_run_data)
@@ -1251,7 +1041,7 @@ elsif INPUT == "file" &&  /^\d+$/.match(REMAINING_ARGS[0].to_s)
   number = REMAINING_ARGS[1].to_i
   failure = past_run_data.get_failure_by_number(number)
   if failure
-    puts failure.spec_file_full_path
+    puts failure.spec_file_path
   else
     puts "Couldn't find failure numbered: #{number}"
     exit 75 # EX_TEMPFAIL (user input)
