@@ -386,11 +386,15 @@ class RunLog
     rl
   end
   def self.from_rspec_json(json_string)
-    json = JSON.parse(json_string)
     rl = RunLog.new()
-    json.each do |failure_hash|
-      rl.failures << Failure.from_json(failure_hash)
+    if ! ( json_string.to_s == "" || /^\s+$/.match(json_string.to_s))
+      STDERR.puts("XXX asked to parse:------\n#{json_string}------\n\n")
+      json = JSON.parse(json_string)
+      json.each do |failure_hash|
+        rl.failures << Failure.from_json(failure_hash)
+      end
     end
+    rl
   end
 
   # It is expected that the file won't exist
@@ -736,7 +740,6 @@ end
 
 # returns a RunLog
 def process_rspec_output(output)
-  new_run_data = RunLog.new()
   before_rtest_json = true
   json_lines = []
   output.split("\n").each do |line|
@@ -749,11 +752,7 @@ def process_rspec_output(output)
       json_lines << line
     end
   end
-  unless current_failure.empty?
-    new_run_data.failures << current_failure
-    # display_failure(current_failure, new_run_data.failures.length - 1)
-  end
-  new_run_data
+  RunLog.from_rspec_json(json_lines.join("\n"))
 end
 
 
