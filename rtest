@@ -675,9 +675,8 @@ end
 
 def print_description(failure, potential_display_number)
   display_number = failure.display_number.nil? ? potential_display_number : failure.display_number
-  if failure.description.size == 1
-    puts "\n#{ERROR_LINE_COLOR}#{display_number}: #{failure.description.first}#{COLOR_RESET}\n"
-  else
+  puts "\n#{ERROR_LINE_COLOR}#{display_number}: #{failure.test_name}#{COLOR_RESET}\n"
+  if failure.description.size > 1
     # well crap. We're dealing with something like this
     # [
     #   "expect do",
@@ -690,7 +689,6 @@ def print_description(failure, potential_display_number)
     #   ")",
     # ]
 
-    puts "\n#{ERROR_LINE_COLOR}#{display_number}: complex failure…#{COLOR_RESET}\n"
     failure.description.each do | line |
       puts "\t#{DETAIL_LINE_COLOR}#{line}#{COLOR_RESET}"
     end
