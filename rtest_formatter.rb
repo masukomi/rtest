@@ -49,12 +49,12 @@ class Failure
   }x.freeze
 
   attr_accessor :backtrace,
-                :comparison_note,
                 :description,
                 :error_file_path,
                 :error_line_number,
                 :error_method,
                 :expected,
+                :failure_notes,
                 :got,
                 :spec_line_number,
                 :rspec_arg,
@@ -66,6 +66,8 @@ class Failure
   # example: RSpec::Core::Example
   # failure: FailedExampleNotification
   def initialize(notification)
+    self.failure_notes=[]
+
     example = notification.example
 
     extract_attrs_from_example(example)
@@ -76,10 +78,28 @@ class Failure
   # This, of course, presumes you're not actually editing one
   # of those.
   def filtered_backtrace
-    backtrace.reject{ |line| line.include?("/lib/ruby/") \
-                      || line.include?("/bin/rspec") \
-                      || line.include?("/bin/bundle")
+    eliptified_lines = backtrace.map{ |line| filterable_line?(line) ? "…" : line }
+    last_line = nil
+    eliptified_lines.reject{ |line|
+      if line == "…" && last_line == "…"
+        true
+      else
+        last_line = line
+        false
+      end
     }
+
+    # backtrace.reject{ |line| line.include?("/lib/ruby/") \
+    #                   || line.include?("/bin/rspec") \
+    #                   || line.include?("/bin/bundle") \
+    #                   || line.include?("/spec_helper.rb")
+    # }
+  end
+  def filterable_line?(line)
+    line.include?("/lib/ruby/") \
+      || line.include?("/bin/rspec") \
+      || line.include?("/bin/bundle") \
+      || line.include?("/spec_helper.rb")
   end
 
   def to_json
@@ -139,7 +159,8 @@ class Failure
         self.got = content
       else
         # it's a non-blank line with content that isn't one of the above...
-        self.comparison_note = self.comparison_note.nil? ? line : "#{self.comparison_note}\n#{line}"
+        #
+        self.failure_notes << line
       end
     end
   end
