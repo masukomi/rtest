@@ -684,24 +684,43 @@ def display_failure(failure, index = -1)
 end
 
 def printable_failure_notes(failure)
-  "\n\t#{FAILURE_NOTE_LINE_COLOR}" + failure.failure_notes.join("\n\t") + COLOR_RESET
+  displayable_list = currently_verbose? ? failure.failure_notes : failure.failure_notes[0..9]
+  path_lines_truncator("\t#{FAILURE_NOTE_LINE_COLOR}",
+                       displayable_list,
+                       COLOR_RESET,
+                       {force: true})
+  # "\n\t#{FAILURE_NOTE_LINE_COLOR}" + displayable_list.join("\n\t") + COLOR_RESET
 end
 
 def printable_backtrace(backtrace)
-  "\t#{BACKTRACE_COLOR}" + backtrace.join("\n\t") + COLOR_RESET
+  displayable_list = currently_verbose? ? backtrace : backtrace[0..9]
+  path_lines_truncator("\t#{BACKTRACE_COLOR}",
+                       displayable_list,
+                       COLOR_RESET,
+                       {force: true})
+  # "\t#{BACKTRACE_COLOR}" + displayable_list.join("\n\t") + COLOR_RESET
 end
 
 def unescape(text)
   text.gsub(ANSI_MATCHER, '')
 end
+
+def path_lines_truncator(preface, paths, suffix, line_options={})
+  paths.map{ |path|
+    path_line_truncator(preface, path, suffix, line_options)
+  }.join("\n")
+end
 # a path line is a line that ends in a file path
 # it may or may not, have a preface.
-def path_line_truncator(preface, path, suffix, soft_max=SCREEN_WIDTH)
+# to force truncation even when not in shortened_paths mode
+# set line_options[:force] = true
+def path_line_truncator(preface, path, suffix, line_options={})
   #TODO calculate how long a tab stop is
   #for now i'm assuming the default of 8 characters
+  line_options[:soft_max] = SCREEN_WIDTH unless line_options[:soft_max]
 
   untruncated_line = preface + path + suffix
-  if ! OPTIONS[:shortened_paths]
+  if ! OPTIONS[:shortened_paths] && ! line_options[:force]
     return untruncated_line
   else
     tab_length = 8
@@ -713,10 +732,10 @@ def path_line_truncator(preface, path, suffix, soft_max=SCREEN_WIDTH)
     basename = File.basename(path)
     elipsis_basename = "…#{File::SEPARATOR}#{basename}"
 
-    if basename.length >= soft_max
+    if basename.length >= line_options[:soft_max]
       return elipsis_basename
     else
-      available_chars = soft_max - elipsis_basename.length - non_file_length
+      available_chars = line_options[:soft_max] - elipsis_basename.length - non_file_length
       path_chunks = path.split(File::SEPARATOR)
       returnable = []
 
