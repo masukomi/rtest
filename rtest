@@ -1028,7 +1028,7 @@ elsif /.*_spec.rb(:\d+)?$/.match(INPUT) \
   || INPUT=="last_file" \
   || /\S+\/$/.match(INPUT) # ends with a slash, prolly a directory
   if INPUT != "all" && INPUT != "last_file"
-    if ! File.exist?(INPUT)
+    if ! File.exist?(INPUT.sub(/:\d+$/, ''))
       STDERR.puts("Could not find specified file or directory:\n#{INPUT}")
       STDERR.puts("Please try again with a valid path.")
       exit 64 # EX_USAGE
