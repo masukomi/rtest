@@ -63,21 +63,13 @@ class Failure
   end
 
   def to_json
-    JSON.pretty_generate({
-      backtrace: filtered_backtrace,
-      description: description,
-      error_file_path: error_file_path,
-      error_line_number: error_line_number,
-      error_method: error_method,
-      expected: expected,
-      got: got,
-      spec_line_number: spec_line_number,
-      rspec_arg: rspec_arg,
-      run_time: run_time,
-      spec_file_path: spec_file_path,
-      spec_location: spec_location,
-      test_name: test_name
-    })
+    hash = {}
+    self.instance_variables.map{ |x| x.to_s.sub("@", "").to_sym }.each do | method |
+      hash[method] = self.send(method)
+    end
+    hash[:backtrace] = filtered_backtrace
+
+    JSON.pretty_generate(hash)
   end
 
   def inspect
@@ -98,19 +90,19 @@ class Failure
   def extract_attrs_from_notification(notification)
     self.description = notification.message_lines.first
     self.backtrace = notification.formatted_backtrace || []
-    message_parser(notification.exception.message)
+    extract_message_elements(notification.exception.message)
 
     extract_failure_location(filtered_backtrace)
 
   end
 
 
-  def message_parser(failure_message)
+  def extract_message_elements(failure_message)
     # notification.exception.message
     #   "expected: == \"INTENTIONAL FAILURE\"\n     got:    \"ick\""
-    m = /^expected:\s*?(\S+.*?)got:\s*?(\S+.*?)$/.match(failure_message)
-    self.expected = m[0] if m && m[0]
-    self.got      = m[1] if m && m[1]
+    m = /^expected:\s*?(\S+.*?)got:\s*?(\S+.*?)$/.match(failure_message.gsub(/\r\n|\n/, ''))
+    self.expected = m[1].strip if m && m[1]
+    self.got      = m[2].strip if m && m[2]
     # alternately we could get this from notification.message_lines
     # #  ["Failure/Error: expect(io.read(3)).to be == \"INTENTIONAL FAILURE\"", "", "  expected: == \"INTENTIONAL FAILURE\"", "       got:    \"ick\""]
     #     FORMATTED:
@@ -243,6 +235,6 @@ class RtestFormatter
   # notification: NullNotification http://www.rubydoc.info/gems/rspec-core/RSpec/Core/Notifications/NullNotification
   def close(_)
     @output << "BEGIN_RTEST_JSON"
-    @output << "[\n#{@failures.map{ |f|f.to_json }.join(",\n")}\n]"
+    @output << "\n[\n#{@failures.map{ |f|f.to_json }.join(",\n")}\n]"
   end
 end

@@ -143,7 +143,7 @@ USAGE.freeze
 ERROR_LINE_COLOR="\e[38;5;196m"
 FILE_HIGHLIGHT_COLOR="\e[38;5;7m"
 EXPECTED_LINE_COLOR="\e[32m"
-GOT_LINE_COLOR="\e[38;5;7m" #"\e[91m"
+GOT_LINE_COLOR="\e[38;2;255;110;103m" #"\e[91m"
 LINE_NUMBER_COLOR="\e[38;5;214m" # was 100;33
 ERROR_HERE_LINE_COLOR="\e[1;38;5;7m" # "\e[100,37m"
 COLOR_RESET="\e[0m"
@@ -318,8 +318,11 @@ class Failure
   end
 
   def to_hash
-    persistable_attr_symbols.map{ |x| [x, self.send(x)]}
-      .flatten
+    hash = {}
+    persistable_attr_symbols.each do | method |
+      hash[method] = self.send(method)
+    end
+    hash
   end
 
   def self.from_json(json, display_number = nil)
@@ -388,7 +391,6 @@ class RunLog
   def self.from_rspec_json(json_string)
     rl = RunLog.new()
     if ! ( json_string.to_s == "" || /^\s+$/.match(json_string.to_s))
-      STDERR.puts("XXX asked to parse:------\n#{json_string}------\n\n")
       json = JSON.parse(json_string)
       json.each do |failure_hash|
         rl.failures << Failure.from_json(failure_hash)
@@ -656,15 +658,16 @@ def display_failure(failure, index = -1)
   end
   puts printable_file_and_line_num(failure)
 
-  if ! failure.details.nil?
-    formatted_details = reformat_failure_details(failure.details)
+  if ! failure.description.nil?
+    # formatted_details = reformat_failure_details(failure.description)
+    formatted_details = "\t#{failure.description}"
     puts "#{DETAIL_LINE_COLOR}#{formatted_details}#{COLOR_RESET}"
   end
 
   puts "\t\t#{EXPECTED_LINE_COLOR}expected: #{failure.expected}#{COLOR_RESET}" if failure.expected
-  puts "\t\t#{GOT_LINE_COLOR}got     : #{failure.got}#{COLOR_RESET}" if failure.got
+  puts "\t\t#{GOT_LINE_COLOR     }got     : #{failure.got}#{COLOR_RESET}" if failure.got
 
-  puts "\n\t\tDiff:\n#{failure.diff.join("\n\t\t")}" if failure.diff
+  # puts "\n\t\tDiff:\n#{failure.diff.join("\n\t\t")}" if failure.diff
 end
 
 def unescape(text)
@@ -731,7 +734,7 @@ def printable_file_and_line_num(failure)
   if failure.error_file_path
       path_line_truncator("\tERROR HERE : #{ERROR_HERE_LINE_COLOR}",
                           failure.error_file_path,
-                          "#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure.line_number}#{COLOR_RESET}"
+                          "#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure.error_line_number}#{COLOR_RESET}"
       )
   end
   lines.join("\n")
@@ -742,7 +745,7 @@ end
 def process_rspec_output(output)
   before_rtest_json = true
   json_lines = []
-  output.split("\n").each do |line|
+  output.split(/\r\n|\n/).each do |line|
     if before_rtest_json && line == "BEGIN_RTEST_JSON"
       before_rtest_json = false
       next
@@ -826,8 +829,7 @@ def run_this(spec, update_file, retries = 0)
   # so... just gonna have to do without that unless
   # you, my brilliant reader, know a workaround.
 
-  output = unescape(output_buffer.string)
-  # STDERR.puts("XXX escaped output: \n#{output}")
+  output = output_buffer.string
 
   if output.match(/^[A-Z]+[a-z]+\w+Error:/)
     failure_extract = extract_meaningful_failure(output)
