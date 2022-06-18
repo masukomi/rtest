@@ -666,8 +666,13 @@ def display_failure(failure, index = -1)
 
   puts "\t\t#{EXPECTED_LINE_COLOR}expected: #{failure.expected}#{COLOR_RESET}" if failure.expected
   puts "\t\t#{GOT_LINE_COLOR     }got     : #{failure.got}#{COLOR_RESET}" if failure.got
-
+  puts ""
+  puts printable_backtrace(failure.backtrace)
   # puts "\n\t\tDiff:\n#{failure.diff.join("\n\t\t")}" if failure.diff
+end
+
+def printable_backtrace(backtrace)
+  "\t" + backtrace.join("\n\t")
 end
 
 def unescape(text)
