@@ -661,18 +661,8 @@ def reformat_failure_details(details)
 end
 
 def display_failure(failure, index = -1)
-  if failure.display_number
-    puts "\n#{ERROR_LINE_COLOR}#{failure.display_number}: #{failure.description}#{COLOR_RESET}\n"
-  else
-    puts "\n#{ERROR_LINE_COLOR}#{index + 1}: #{failure.description}#{COLOR_RESET}\n"
-  end
+  print_description(failure, index + 1)
   puts printable_file_and_line_num(failure)
-
-  if ! failure.description.nil?
-    # formatted_details = reformat_failure_details(failure.description)
-    formatted_details = "\t#{failure.description}"
-    puts "#{DETAIL_LINE_COLOR}#{formatted_details}#{COLOR_RESET}"
-  end
 
   puts "\t\t#{EXPECTED_LINE_COLOR}expected: #{failure.expected}#{COLOR_RESET}" if failure.expected
   puts "\t\t#{GOT_LINE_COLOR     }got     : #{failure.got}#{COLOR_RESET}" if failure.got
@@ -682,6 +672,34 @@ def display_failure(failure, index = -1)
   puts printable_backtrace(failure.backtrace)
   # puts "\n\t\tDiff:\n#{failure.diff.join("\n\t\t")}" if failure.diff
 end
+
+def print_description(failure, potential_display_number)
+  display_number = failure.display_number.nil? ? potential_display_number : failure.display_number
+  if failure.description.size == 1
+    puts "\n#{ERROR_LINE_COLOR}#{display_number}: #{failure.description.first}#{COLOR_RESET}\n"
+  else
+    # well crap. We're dealing with something like this
+    # [
+    #   "expect do",
+    #   "object.upload_stream(tempfile: true) do |write_stream|",
+    #   "write_stream << seventeen_mb",
+    #   "end",
+    #   "end.to raise_error(",
+    #   "S3::MultipartUploadError,",
+    #   "'failed to abort multipart upload: network-error'",
+    #   ")",
+    # ]
+
+    puts "\n#{ERROR_LINE_COLOR}#{display_number}: complex failure…#{COLOR_RESET}\n"
+    failure.description.each do | line |
+      puts "\t#{DETAIL_LINE_COLOR}#{line}#{COLOR_RESET}"
+    end
+
+  end
+
+
+end
+
 
 def printable_failure_notes(failure)
   displayable_list = currently_verbose? ? failure.failure_notes : failure.failure_notes[0..9]
@@ -772,7 +790,7 @@ def printable_file_and_line_num(failure)
 
   end
   if failure.error_file_path
-      path_line_truncator("\tERROR HERE : #{ERROR_HERE_LINE_COLOR}",
+      lines << path_line_truncator("\tERROR HERE : #{ERROR_HERE_LINE_COLOR}",
                           failure.error_file_path,
                           "#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure.error_line_number}#{COLOR_RESET}"
       )
