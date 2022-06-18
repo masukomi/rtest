@@ -82,19 +82,15 @@ class Failure
     eliptified_lines = backtrace.map{ |line| filterable_line?(line) ? "…" : line }
     last_line = nil
     eliptified_lines.reject{ |line|
-      if line == "…" && last_line == "…"
+      if line == "…" && ( last_line.nil? || last_line == "…" )
         true
       else
         last_line = line
         false
       end
     }
-
-    # backtrace.reject{ |line| line.include?("/lib/ruby/") \
-    #                   || line.include?("/bin/rspec") \
-    #                   || line.include?("/bin/bundle") \
-    #                   || line.include?("/spec_helper.rb")
-    # }
+    return eliptified_lines if eliptified_lines.last != "…"
+    eliptified_lines[0..-2]
   end
   def filterable_line?(line)
     line.include?("/lib/ruby/") \
