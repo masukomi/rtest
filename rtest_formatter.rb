@@ -67,6 +67,7 @@ class Failure
   # failure: FailedExampleNotification
   def initialize(notification)
     self.failure_notes=[]
+    self.description = []
 
     example = notification.example
 
@@ -147,20 +148,93 @@ class Failure
               .reject{ |line| line.empty? }
     # sholud be [failure/error, expected, got, <optional comparison note>]
     # but i don't want to assume
+
+    open('/Users/masukomi/workspace/reference/ruby/aws-sdk-ruby/build_tools/debugger.txt', 'a') { |f| f.puts JSON.pretty_generate(lines) }
+
+    complex_extraction = lines.first == "Failure/Error:" \
+                         || lines.any?{ |line| !! /^expected .*?, got /.match(line) }
+    if complex_extraction
+      complex_message_extraction(lines)
+    else
+      simple_message_extraction(lines)
+    end
+  end
+
+  def simple_message_extraction(lines)
     lines.each do | line|
       prefix  = line.sub(/:.*/, '')
       content = line.sub(/^.*?:/, '')
 
       if prefix == "Failure/Error"
-        self.description = content
+        open('/Users/masukomi/workspace/reference/ruby/aws-sdk-ruby/build_tools/debugger.txt', 'a') { |f| f.puts "description -> #{content}"}
+        self.description  << content
       elsif line.start_with? "expected"
+        open('/Users/masukomi/workspace/reference/ruby/aws-sdk-ruby/build_tools/debugger.txt', 'a') { |f| f.puts "expected -> #{content}"}
         self.expected = content
       elsif line.start_with? "got"
+        open('/Users/masukomi/workspace/reference/ruby/aws-sdk-ruby/build_tools/debugger.txt', 'a') { |f| f.puts "got -> #{content}"}
         self.got = content
       else
         # it's a non-blank line with content that isn't one of the above...
         #
+        open('/Users/masukomi/workspace/reference/ruby/aws-sdk-ruby/build_tools/debugger.txt', 'a') { |f| f.puts "failure_note -> #{line}"}
         self.failure_notes << line
+      end
+    end
+  end
+  def complex_message_extraction(lines)
+    # assumptions
+    # first line:
+    #   "Failure/Erorr:"
+    # unknown number of lines then
+    #   "expected <something>, got <something else>"
+    # MAYBE ending in
+    #   " with backtrace:"
+    # followed by lines of backtrace starting with
+    #   "# "
+    #  ---- ACTUAL EXAMPLE ---
+    #  [
+    #   "Failure/Error:",
+    #   "expect do",
+    #   "object.upload_stream(tempfile: true) do |write_stream|",
+    #   "write_stream << seventeen_mb",
+    #   "end",
+    #   "end.to raise_error(",
+    #   "S3::MultipartUploadError,",
+    #   "'failed to abort multipart upload: network-error'",
+    #   ")",
+    #   "expected Aws::S3::MultipartUploadError with \"failed to abort multipart upload: network-error\", got #<Aws::S3::MultipartUploadError: failed to abort multipart upload: network-error💥> with backtrace:",
+    #   "# ./lib/aws-sdk-s3/multipart_stream_uploader.rb:99:in `rescue in abort_upload'",
+    #   "# ./lib/aws-sdk-s3/multipart_stream_uploader.rb:87:in `abort_upload'",
+    #   "# ./lib/aws-sdk-s3/multipart_stream_uploader.rb:83:in `upload_parts'",
+    #   "# ./lib/aws-sdk-s3/multipart_stream_uploader.rb:45:in `upload'",
+    #   "# ./lib/aws-sdk-s3/customizations/object.rb:371:in `upload_stream'",
+    #   "# ./spec/object/upload_stream_spec.rb:449:in `block (5 levels) in <module:S3>'",
+    #   "# ./spec/object/upload_stream_spec.rb:448:in `block (4 levels) in <module:S3>'"
+    # ]
+    in_backtrace = false
+    # 1st line is useless
+    lines[1..-1].each do | line |
+      # FIXME: regexp doesn't work.
+      # space before got != \s ?!??
+      # ALSO
+      # can't figure out how to extract the "with_backtrace:" here
+      #
+      # m = /^expected (.*?), got (.*?)(\s+with backtrace:)?/.match(line)
+      m = /^expected\s+(.*?), got\s+(.*)/.match(line)
+      if m # we've exited the description
+        self.expected = m[1]
+        if m[2].end_with?("with backtrace:")
+          self.got = m[2].sub(/\s+with backtrace:/, '')
+          in_backtrace = true
+          self.failure_notes << "comparison backtrace:"
+        else
+          self.got = m[2]
+        end
+      elsif ! in_backtrace
+        self.description << line
+      else # backtrace line
+        self.failure_notes << line.sub(/^# /, '')
       end
     end
   end
