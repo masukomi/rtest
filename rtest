@@ -142,8 +142,7 @@ USAGE.freeze
 # SET UP THE COLORS
 BACKTRACE_COLOR="\e[38;2;127;128;128m"
 COLOR_RESET="\e[0m"
-# COMPARISON_LINE_COLOR="\e[38;2;127;128;128m"
-COMPARISON_LINE_COLOR=""
+FAILURE_NOTE_LINE_COLOR=""
 DETAIL_LINE_COLOR="\e[38;2;255;140;0m"
 ERROR_HERE_LINE_COLOR="\e[1;38;5;7m" # "\e[100,37m"
 ERROR_LINE_COLOR="\e[38;5;196m"
@@ -254,12 +253,12 @@ class Failure
   UNPERSISTABLE_ATTRS = Set.new( %i[display_number killable offset persisted] ).freeze
 
   attr_accessor :backtrace,
-                :comparison_note,
                 :description,
                 :error_file_path,
                 :error_line_number,
                 :error_method,
                 :expected,
+                :failure_notes,
                 :got,
                 :rspec_arg,
                 :run_time,
@@ -309,12 +308,17 @@ class Failure
   def killable?
     self.killable
   end
+
   def persisted?
     self.persisted
   end
 
   def rerunable?
     ! self.rspec_arg.blank?
+  end
+
+  def has_notes?
+    ! self.failure_notes.empty?
   end
 
   def spec_arg_line_number
@@ -673,10 +677,14 @@ def display_failure(failure, index = -1)
   puts "\t\t#{EXPECTED_LINE_COLOR}expected: #{failure.expected}#{COLOR_RESET}" if failure.expected
   puts "\t\t#{GOT_LINE_COLOR     }got     : #{failure.got}#{COLOR_RESET}" if failure.got
 
-  puts "\n\t\t#{COMPARISON_LINE_COLOR}#{failure.comparison_note}#{COLOR_RESET}" if failure.comparison_note
+  puts printable_failure_notes(failure) if failure.has_notes?
   puts ""
   puts printable_backtrace(failure.backtrace)
   # puts "\n\t\tDiff:\n#{failure.diff.join("\n\t\t")}" if failure.diff
+end
+
+def printable_failure_notes(failure)
+  "\n\t#{FAILURE_NOTE_LINE_COLOR}" + failure.failure_notes.join("\n\t") + COLOR_RESET
 end
 
 def printable_backtrace(backtrace)
