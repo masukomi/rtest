@@ -149,6 +149,7 @@ ERROR_HERE_LINE_COLOR="\e[1;38;5;7m" # "\e[100,37m"
 COLOR_RESET="\e[0m"
 DETAIL_LINE_COLOR="\e[38;2;255;140;0m"
 SUCCESS_COLOR="\e[38;2;7;198;25m"
+BACKTRACE_COLOR="\e[38;2;127;128;128m"
 
 RTEST_DIR=__dir__
 
@@ -672,7 +673,7 @@ def display_failure(failure, index = -1)
 end
 
 def printable_backtrace(backtrace)
-  "\t" + backtrace.join("\n\t")
+  "\t#{BACKTRACE_COLOR}" + backtrace.join("\n\t") + COLOR_RESET
 end
 
 def unescape(text)
