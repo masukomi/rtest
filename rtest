@@ -662,13 +662,15 @@ end
 
 def display_failure(failure, index = -1)
   print_description(failure, index + 1)
+
+  puts printable_failure_notes(failure) if failure.has_notes?
+  puts ""
+
   puts printable_file_and_line_num(failure)
 
   puts "\t\t#{EXPECTED_LINE_COLOR}expected: #{failure.expected}#{COLOR_RESET}" if failure.expected
   puts "\t\t#{GOT_LINE_COLOR     }got     : #{failure.got}#{COLOR_RESET}" if failure.got
 
-  puts printable_failure_notes(failure) if failure.has_notes?
-  puts ""
   puts printable_backtrace(failure.backtrace)
   # puts "\n\t\tDiff:\n#{failure.diff.join("\n\t\t")}" if failure.diff
 end
@@ -702,7 +704,7 @@ end
 def printable_failure_notes(failure)
   displayable_list = currently_verbose? ? failure.failure_notes : failure.failure_notes[0..9]
   path_lines_truncator("\t#{FAILURE_NOTE_LINE_COLOR}",
-                       displayable_list,
+                       displayable_list.map{ |x| "\t▷ #{x}" },
                        COLOR_RESET,
                        {force: true})
   # "\n\t#{FAILURE_NOTE_LINE_COLOR}" + displayable_list.join("\n\t") + COLOR_RESET
@@ -722,10 +724,23 @@ def unescape(text)
 end
 
 def path_lines_truncator(preface, paths, suffix, line_options={})
-  paths.map{ |path|
-    path_line_truncator(preface, path, suffix, line_options)
+  paths.map{ |maybe_path|
+    if line_is_path?(unescape(maybe_path))
+      path_line_truncator(preface, maybe_path, suffix, line_options)
+    else
+      maybe_path
+    end
   }.join("\n")
 end
+
+# only used for truncation decision
+# it's unlikely any single file name in the current dir
+# will be long enough to need truncation ;)
+def line_is_path?(line)
+  line.split(File::SEPARATOR).size > 1 \
+    && /^\s*\.?\//.match(line)
+end
+
 # a path line is a line that ends in a file path
 # it may or may not, have a preface.
 # to force truncation even when not in shortened_paths mode
