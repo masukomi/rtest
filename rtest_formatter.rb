@@ -66,6 +66,7 @@ class Failure
   # example: RSpec::Core::Example
   # failure: FailedExampleNotification
   def initialize(notification)
+
     self.failure_notes=[]
     self.description = []
 
@@ -79,18 +80,20 @@ class Failure
   # This, of course, presumes you're not actually editing one
   # of those.
   def filtered_backtrace
-    eliptified_lines = backtrace.map{ |line| filterable_line?(line) ? "…" : line }
-    last_line = nil
-    eliptified_lines.reject{ |line|
-      if line == "…" && ( last_line.nil? || last_line == "…" )
-        true
-      else
-        last_line = line
-        false
+    elliptified_lines = backtrace.map{ |line| filterable_line?(line) ? "…" : line }
+    returnable_lines = []
+    elliptified_lines.each_with_index{ |line, idx|
+      if line != "…" && idx != 0
+        returnable_lines << line
+      elsif idx > 0 \
+            && ! returnable_lines.empty? \
+            && returnable_lines.last != "…"
+        returnable_lines << line
       end
+
     }
-    return eliptified_lines if eliptified_lines.last != "…"
-    eliptified_lines[0..-2]
+    return returnable_lines if returnable_lines.last != "…"
+    returnable_lines[0..-2]
   end
   def filterable_line?(line)
     line.include?("/lib/ruby/") \
@@ -133,7 +136,6 @@ class Failure
     extract_message_elements(notification)
 
     extract_failure_location(filtered_backtrace)
-
   end
 
 
@@ -145,7 +147,6 @@ class Failure
     # sholud be [failure/error, expected, got, <optional comparison note>]
     # but i don't want to assume
 
-    open('/Users/masukomi/workspace/reference/ruby/aws-sdk-ruby/build_tools/debugger.txt', 'a') { |f| f.puts JSON.pretty_generate(lines) }
 
     complex_extraction = lines.first == "Failure/Error:" \
                          || lines.any?{ |line| !! /^expected .*?, got /.match(line) }
@@ -162,18 +163,14 @@ class Failure
       content = line.sub(/^.*?:/, '')
 
       if prefix == "Failure/Error"
-        open('/Users/masukomi/workspace/reference/ruby/aws-sdk-ruby/build_tools/debugger.txt', 'a') { |f| f.puts "description -> #{content}"}
         self.description  << content
       elsif line.start_with? "expected"
-        open('/Users/masukomi/workspace/reference/ruby/aws-sdk-ruby/build_tools/debugger.txt', 'a') { |f| f.puts "expected -> #{content}"}
         self.expected = content
       elsif line.start_with? "got"
-        open('/Users/masukomi/workspace/reference/ruby/aws-sdk-ruby/build_tools/debugger.txt', 'a') { |f| f.puts "got -> #{content}"}
         self.got = content
       else
         # it's a non-blank line with content that isn't one of the above...
         #
-        open('/Users/masukomi/workspace/reference/ruby/aws-sdk-ruby/build_tools/debugger.txt', 'a') { |f| f.puts "failure_note -> #{line}"}
         self.failure_notes << line
       end
     end
@@ -250,7 +247,6 @@ class Failure
       end
     end
   end
-
 end
 
 class RtestFormatter
@@ -271,21 +267,6 @@ class RtestFormatter
   def initialize(output)
     @output = output
     @failures = []
-  end
-
-  # notification RSpec::Core::Notifications::ExampleNotification
-  # https://www.rubydoc.info/gems/rspec-core/RSpec/Core/Notifications/ExampleNotification
-  def example_started(notification)
-    # notification.example is an RSpec::Core::Example
-    # https://www.rubydoc.info/gems/rspec-core/RSpec/Core/Example
-
-    # @output << "example: " << notification.example.description
-  end
-
-  # called if the example passes
-  # notification: ExampleNotification
-  # http://www.rubydoc.info/gems/rspec-core/RSpec/Core/Notifications/ExampleNotification
-  def example_passed(notification)
   end
 
   # called if the example fails
@@ -326,33 +307,6 @@ class RtestFormatter
     @failures << f
   end
 
-  # called if the example is marked as pending
-  # notification: ExampleNotification
-  # http://www.rubydoc.info/gems/rspec-core/RSpec/Core/Notifications/ExampleNotification
-  def example_pending(notification)
-  end
-
-  # the following methods are all called in the order presented
-  # notification: ExamplesNotification (PLURAL)
-  # http://www.rubydoc.info/gems/rspec-core/RSpec/Core/Notifications/ExamplesNotification
-  def stop(notification)
-
-  end
-
-  # notification: NullNotification http://www.rubydoc.info/gems/rspec-core/RSpec/Core/Notifications/NullNotification
-  def start_dump(notification)
-  end
-
-
-  # notification: ExamplesNotification (PLURAL)
-  # http://www.rubydoc.info/gems/rspec-core/RSpec/Core/Notifications/ExamplesNotification
-  def dump_failures(notification)
-  end
-
-  # notification: SummaryNotification
-  # http://www.rubydoc.info/gems/rspec-core/RSpec/Core/Notifications/SummaryNotification
-  def dump_summary(notification)
-  end
 
   # notification: NullNotification http://www.rubydoc.info/gems/rspec-core/RSpec/Core/Notifications/NullNotification
   def close(_)
