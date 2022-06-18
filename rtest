@@ -957,12 +957,19 @@ def range_arg_to_array(arg)
   arg.split('-').map(&:to_i)
 end
 
+# this returns true if there is NO point
+# in loading the existing data file
+def input_denotes_fresh_run?(input)
+  return true if input == "all"
+  return true if /.*_spec.rb(?::\d+)?$/.match(input)
+  false
+end
 
 # -------------------------
 
 past_run_data = RunLog.new()
 
-if File.exist?(PAST_RUN_FILENAME) && ! TEST_MODE
+if File.exist?(PAST_RUN_FILENAME) && ! TEST_MODE && ! input_denotes_fresh_run?(INPUT)
   past_run_data = RunLog.from_file(PAST_RUN_FILENAME)
 end
 
