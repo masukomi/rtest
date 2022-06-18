@@ -28,8 +28,28 @@
 
 require 'json'
 
+
 class Failure
+  # The regex to match ANSI codes
+  # from https://github.com/piotrmurach/strings-ansi
+  ANSI_MATCHER = %r{
+    (?>\033(
+      \[[\[?>!]?\d*(;\d+)*[ ]?[a-zA-Z~@$^\]_\{\\] # graphics
+      |
+      \#?\d # cursor modes
+      |
+      [)(%+\-*/. ](\d|[a-zA-Z@=%]|) # character sets
+      |
+      O[p-xA-Z] # special keys
+      |
+      [a-zA-Z=><~\}|] # cursor movement
+      |
+      \]8;[^;]*;.*?(\033\\|\07) # hyperlink
+    ))
+  }x.freeze
+
   attr_accessor :backtrace,
+                :comparison_note,
                 :description,
                 :error_file_path,
                 :error_line_number,
@@ -78,6 +98,10 @@ class Failure
 
   private
 
+  def unescape(text)
+    text.gsub(ANSI_MATCHER, '')
+  end
+
   def extract_attrs_from_example(example)
     self.test_name = example.description
     self.rspec_arg = example.location_rerun_argument
@@ -88,29 +112,36 @@ class Failure
   end
 
   def extract_attrs_from_notification(notification)
-    self.description = notification.message_lines.first
     self.backtrace = notification.formatted_backtrace || []
-    extract_message_elements(notification.exception.message)
+    extract_message_elements(notification)
 
     extract_failure_location(filtered_backtrace)
 
   end
 
 
-  def extract_message_elements(failure_message)
-    # notification.exception.message
-    #   "expected: == \"INTENTIONAL FAILURE\"\n     got:    \"ick\""
-    m = /^expected:\s*?(\S+.*?)got:\s*?(\S+.*?)$/.match(failure_message.gsub(/\r\n|\n/, ''))
-    self.expected = m[1].strip if m && m[1]
-    self.got      = m[2].strip if m && m[2]
-    # alternately we could get this from notification.message_lines
-    # #  ["Failure/Error: expect(io.read(3)).to be == \"INTENTIONAL FAILURE\"", "", "  expected: == \"INTENTIONAL FAILURE\"", "       got:    \"ick\""]
-    #     FORMATTED:
-    #     Failure/Error: expect(io.read(3)).to be == "INTENTIONAL FAILURE"
-    #
-    #       expected: == "INTENTIONAL FAILURE"
-    #            got:    "ick"
+  def extract_message_elements(notification)
+    lines = notification
+              .message_lines
+              .map{ |line| unescape(line.sub(/^\s+/, '')) }
+              .reject{ |line| line.empty? }
+    # sholud be [failure/error, expected, got, <optional comparison note>]
+    # but i don't want to assume
+    lines.each do | line|
+      prefix  = line.sub(/:.*/, '')
+      content = line.sub(/^.*?:/, '')
 
+      if prefix == "Failure/Error"
+        self.description = content
+      elsif line.start_with? "expected"
+        self.expected = content
+      elsif line.start_with? "got"
+        self.got = content
+      else
+        # it's a non-blank line with content that isn't one of the above...
+        self.comparison_note = self.comparison_note.nil? ? line : "#{self.comparison_note}\n#{line}"
+      end
+    end
   end
 
   def extract_line_number(path_with_line_number)
