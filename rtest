@@ -587,11 +587,13 @@ end
 
 def definite_debugger_line(line)
   return false unless line
+  unescaped_line = unescape(line)
+  return false if unescaped_line.strip.length == 0
   # puts "line.inspect: '#{line.inspect}'"
-  !! line.match(/^\(byebug\) $|^\[\d+\] pry\(.*?\)> $/)
+  !! unescaped_line.match(/^\(byebug\) $|^\[\d+\] pry\(.*?\)> $/)
 end
 def potential_debugger_pause(line)
-  !! line.match(/^\s*\d+:\s+/)
+  !! unescape(line).match(/^\s*\d+:\s+/)
 end
 
 def wait_for_read(reader, pid, last_line, counter = 0)
@@ -788,7 +790,7 @@ def interactive_run_handler(run_line, output_buffer)
           # break unless process_running?(pid)
         end
 
-         read_into_buffer(reader, output_buffer)
+        read_into_buffer(reader, output_buffer)
       end
     else
       read_into_buffer(reader, output_buffer)
