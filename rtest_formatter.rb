@@ -66,7 +66,6 @@ class Failure
   # example: RSpec::Core::Example
   # failure: FailedExampleNotification
   def initialize(notification)
-# require 'byebug'; byebug
     self.failure_notes=[]
     self.description = []
 
@@ -150,7 +149,6 @@ class Failure
     complex_extraction = unescape(lines.first) == "Failure/Error:" \
                          || lines.any?{ |line| !! /^expected .*?, got /.match(unescape(line)) }
     if complex_extraction
-      # require 'byebug'; byebug
       complex_message_extraction(lines)
     else
       simple_message_extraction(lines)
@@ -158,14 +156,15 @@ class Failure
   end
 
   def simple_message_extraction(lines)
-    # require 'byebug'; byebug
     lines.each do | line|
       unescaped_line = unescape(line)
       prefix, content = message_line_components(unescaped_line)
-      message_line_assignment_by_prefix(prefix, content, unescaped_line)
+      message_line_assignment_by_prefix(prefix, content, line)
     end
   end
   def message_line_assignment_by_prefix(prefix, content, line)
+    unescaped_line = unescape(line)
+    return false if unescaped_line.strip.empty?
     if prefix == "Failure/Error"
       self.description  << content
       return true
@@ -175,10 +174,8 @@ class Failure
     elsif prefix == "got"
       self.got = content
       return true
-    elsif ! unescape(line).strip.empty?
-          # require 'byebug'; byebug
+    else
       # it's a non-blank line with content that isn't one of the above...
-      #require 'byebug'; byebug
       self.failure_notes << line
       return true
     end
@@ -221,7 +218,6 @@ class Failure
     # ]
     open('/Users/masukomi/workspace/reference/ruby/aws-sdk-ruby/build_tools/debugger.txt', 'a') { |f| f.puts "complex error message:\n#{JSON.pretty_generate(lines)}" }
 
-          # require 'byebug'; byebug
     in_backtrace = false
     # 1st line is useless
     lines[1..-1].each do | line |
@@ -232,7 +228,6 @@ class Failure
       if ! unescaped_line.strip.empty?
         expected_and_got_match = /^expected\s+(.*?), got\s+(.*)/.match(unescaped_line)
         if expected_and_got_match # we've exited the description
-          require 'byebug'; byebug
           self.expected = expected_and_got_match[1]
           if expected_and_got_match[2].end_with?("with backtrace:")
             self.got = expected_and_got_match[2].sub(/\s+with backtrace:/, '')
@@ -243,12 +238,10 @@ class Failure
           end
         elsif ! in_backtrace
           prefix, content = message_line_components(unescaped_line)
-          if ! message_line_assignment_by_prefix(prefix, content, unescaped_line)
-            # require 'byebug'; byebug
+          if ! message_line_assignment_by_prefix(prefix, content, line)
             self.description << line
           end
         else # backtrace line
-          # require 'byebug'; byebug
           self.failure_notes << unescaped_line.sub(/^# /, '')
         end
       end
