@@ -88,7 +88,7 @@ rtest file <number>
   Ex.
   path/to/failing_spec
 
-rtest files
+rtest [files | --files]
   outputs a list of all the files+line numbers of failing tests
   Ex:
   path/to/failing_spec:43
@@ -206,12 +206,21 @@ options_parser = OptionParser.new do |parser|
     @options[:auto_verbose_seconds] = s.to_i
   end
 
-  parser.on("--rspec=NUMBER", "Run the specified test in rspec") do |number|
+  parser.on("--rspec=NUMBER", "outputs the command to run the specified test in rspec") do |number|
     @options[:rspec] = number.to_i
+  end
+  # 🤫 ssssh secret. Just for us rtest devs.
+  parser.on("--fspec=NUMBER", "outputs the command to run the specified test in rspec with our custom formatter") do |number|
+    @options[:rspec] = number.to_i
+    @options[:fspec] = number.to_i
   end
 
   parser.on("-d", "--debug", "Debug mode") do
     @options[:debug] = true
+  end
+
+  parser.on("--files", "alternate way to specify listing files") do
+    @options[:files] = true
   end
 
   parser.on("-h", "--help") do
@@ -1106,7 +1115,11 @@ elsif /^\d+$/.match(INPUT) || OPTIONS[:rspec]
       # we _could_ do it the way we do the other interactive stuff
       # but the idea here was to make it trivial to rerun something in
       # rspec directly
-      puts "bundle exec rspec #{failure.rspec_arg}"
+      if ! OPTIONS[:fspec]
+        puts "bundle exec rspec #{failure.rspec_arg}"
+      else
+        puts "bundle exec rspec #{failure.rspec_arg} --require #{path_to_formatter} --format RtestFormatter 2>&1"
+      end
       exit 0
     end
     update_record(updated_run_data)
@@ -1166,7 +1179,7 @@ elsif INPUT == "file" &&  /^\d+$/.match(REMAINING_ARGS[0].to_s)
     puts "Couldn't find failure numbered: #{number}"
     exit 75 # EX_TEMPFAIL (user input)
   end
-elsif INPUT == "files"
+elsif INPUT == "files" || OPTIONS[:files]
   display_files(past_run_data)
 elsif /\.rb$/.match(INPUT)
   STDERR.puts "🛑 That's a ruby file, but not an rspec (*_spec.rb) file."
