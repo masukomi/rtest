@@ -76,6 +76,7 @@ class Failure
     extract_attrs_from_example(example)
     extract_attrs_from_notification(notification)
     incorporate_meta_backtrace()
+    extract_failure_location(filtered_backtrace)
   end
 
   # removes gems, rspec, and bundle lines from your backtrace
@@ -156,7 +157,6 @@ class Failure
     self.backtrace = notification.formatted_backtrace || []
     extract_message_elements(notification)
 
-    extract_failure_location(filtered_backtrace)
   end
 
 
