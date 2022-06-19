@@ -222,7 +222,14 @@ options_parser = OptionParser.new do |parser|
 end
 
 numeric_options = ARGV.select{|o| /^-?\d+$/.match(o)}
-foo = options_parser.parse(ARGV.reject{|o| /^-?\d+$/.match(o)})
+begin
+  options_parser.parse(ARGV.reject{|o| /^-?\d+$/.match(o)})
+rescue OptionParser::MissingArgument => e
+  puts "That was not a valid argument.\n\t#{e.message.sub("missing argument: ", '')}\n\n"
+  puts "------------------------------------------"
+  puts USAGE
+  exit 75 # EX_TEMPFAIL (user input)
+end
 REMAINING_ARGS = ARGV.reject{|o| /^-\w+\S*|^--[-\w]+(?:=\S+)$/.match(o)} + numeric_options
 OPTIONS=@options
 
