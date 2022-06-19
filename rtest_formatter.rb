@@ -63,16 +63,19 @@ class Failure
                 :spec_location,
                 :test_name
 
+
   # example: RSpec::Core::Example
   # failure: FailedExampleNotification
   def initialize(notification)
-    self.failure_notes=[]
-    self.description = []
+    self.failure_notes  = []
+    self.description    = []
+    @meta_backtrace = []
 
     example = notification.example
 
     extract_attrs_from_example(example)
     extract_attrs_from_notification(notification)
+    incorporate_meta_backtrace()
   end
 
   # removes gems, rspec, and bundle lines from your backtrace
@@ -104,7 +107,7 @@ class Failure
   def to_json
     hash = {}
     self.instance_variables.map{ |x| x.to_s.sub("@", "").to_sym }.each do | method |
-      hash[method] = self.send(method)
+      hash[method] = self.send(method) unless %i[meta_backtrace backtrace].include? method
     end
     hash[:backtrace] = filtered_backtrace
 
@@ -117,7 +120,26 @@ class Failure
 
   private
 
+  def incorporate_meta_backtrace
+    # open('/Users/masukomi/workspace/rtest/debugging.txt', 'a') { |f|
+    #   f.puts "meta_backtrace:"
+    #   f.puts JSON.pretty_generate(@meta_backtrace)
+    #   f.puts "backtrace:"
+    #   f.puts JSON.pretty_generate(self.backtrace)
+    # }
+
+
+    return true if @meta_backtrace.empty?
+    self.backtrace = @meta_backtrace + self.backtrace
+    @meta_backtrace = []
+    # open('/Users/masukomi/workspace/rtest/debugging.txt', 'a') { |f|
+    #   f.puts "updated backtrace:"
+    #   f.puts JSON.pretty_generate(self.backtrace)
+    # }
+  end
+
   def unescape(text)
+    # return '' if text.nil?
     text.gsub(ANSI_MATCHER, '')
   end
 
@@ -141,16 +163,33 @@ class Failure
   def extract_message_elements(notification)
     lines = notification
               .colorized_message_lines # .map{ |line| unescape(line.sub(/^\s+/, '')) }
-              .reject{ |line| line.empty? }
+              .reject{ |line| unescape(line).empty? }
     # sholud be [failure/error, expected, got, <optional comparison note>]
     # but i don't want to assume
+
+    return false if lines.empty?
+
+    open('/Users/masukomi/workspace/rtest/debugging.txt', 'a') { |f|
+      f.puts "content for: #{notification.description}"
+      f.puts "original notification lines"
+      f.puts JSON.pretty_generate(notification.colorized_message_lines.map{ |l|unescape(l) })
+
+      # begin
+      #   raise "bullshit"
+      # rescue Exception => e
+      #   f.puts "backtrace to extract_message_elements: "
+      #   f.puts(JSON.pretty_generate(e.backtrace[0..10]))
+      # end
+    }
 
 
     complex_extraction = unescape(lines.first) == "Failure/Error:" \
                          || lines.any?{ |line| !! /^expected .*?, got /.match(unescape(line)) }
     if complex_extraction
+      open('/Users/masukomi/workspace/rtest/debugging.txt', 'a') { |f| f.puts("complex extraction")}
       complex_message_extraction(lines)
     else
+      open('/Users/masukomi/workspace/rtest/debugging.txt', 'a') { |f| f.puts("simple extraction")}
       simple_message_extraction(lines)
     end
   end
@@ -158,33 +197,62 @@ class Failure
   def simple_message_extraction(lines)
     lines.each do | line|
       unescaped_line = unescape(line)
-      prefix, content = message_line_components(unescaped_line)
-      message_line_assignment_by_prefix(prefix, content, line)
+      components = message_line_components(unescaped_line)
+      message_line_assignment_by_prefix(components, line)
     end
   end
-  def message_line_assignment_by_prefix(prefix, content, line)
+
+  def message_line_assignment_by_prefix(components, line)
     unescaped_line = unescape(line)
     return false if unescaped_line.strip.empty?
-    if prefix == "Failure/Error"
-      self.description  << content
-      return true
-    elsif prefix == "expected"
-      self.expected = content
-      return true
-    elsif prefix == "got"
-      self.got = content
-      return true
-    else
-      # it's a non-blank line with content that isn't one of the above...
-      self.failure_notes << line
-      return true
+    did_something = false
+    #                    key-v  value-v
+    components.each do |prefix, content|
+
+      if prefix == "Failure/Error"
+        self.description  << content
+        did_something = true
+      elsif prefix == "expected"
+        self.expected = content
+        did_something = true
+      elsif prefix == "got"
+        self.got = content
+        did_something = true
+      else
+        # it's a non-blank line with content that isn't one of the above...
+        if ! meta_backtrace_line? unescaped_line
+          # they start with "    # ./lib/..."
+          add_meta_backtrace_line(unescaped_line)
+        else
+          self.failure_notes << line
+        end
+        did_something = true
+      end
     end
-    false
+    did_something
   end
+
+  def add_meta_backtrace_line(unescaped_line)
+    @meta_backtrace << unescaped_line.sub(/^\s+#\s+/, '')
+  end
+
+  # assumes we've been passed a non-null unescaped_line
+  def meta_backtrace_line?(unescaped_line)
+    !! /^\s+#\s+\.?\//.match(unescaped_line)
+  end
+
   def message_line_components(line)
     # presumes an unescaped line
     # prefix, content
-    [line.sub(/^\s*(\S+.*):.*/, '\1'), line.sub(/^.*?:\s*/, '')]
+    m = /expected (.*?), got (.*?)(\s+with backtrace:)/.match(line)
+    if m
+      {
+        "expected" => m[1],
+        "got" => m[2]
+      }
+    else
+      {line.sub(/^\s*(\S+.*):.*/, '\1') =>  line.sub(/^.*?:\s*/, '')}
+    end
   end
   def complex_message_extraction(lines)
     # assumptions
@@ -216,33 +284,35 @@ class Failure
     #   "# ./spec/object/upload_stream_spec.rb:449:in `block (5 levels) in <module:S3>'",
     #   "# ./spec/object/upload_stream_spec.rb:448:in `block (4 levels) in <module:S3>'"
     # ]
-    open('/Users/masukomi/workspace/reference/ruby/aws-sdk-ruby/build_tools/debugger.txt', 'a') { |f| f.puts "complex error message:\n#{JSON.pretty_generate(lines)}" }
+
+    # open('/Users/masukomi/workspace/rtest/debugging.txt', 'a') { |f| f.puts "complex error message (#{lines.size} lines):\n#{JSON.pretty_generate(lines)}" }
+    # open('/Users/masukomi/workspace/rtest/debugging.txt', 'a') { |f| f.puts "complex error sub-array (#{lines[1..-1].size} lines):\n#{JSON.pretty_generate(lines[1..-1])}" }
 
     in_backtrace = false
     # 1st line is useless
-    lines[1..-1].each do | line |
+    return if lines.size == 1 ## theoretically can't happen
+    lines[1..-1].each_with_index do | line, index |
+
+      # open('/Users/masukomi/workspace/rtest/debugging.txt', 'a') { |f| f.puts "processing (#{index + 1}): #{line}"}
       unescaped_line = unescape(line)
-      # can't figure out how to extract the "with_backtrace:" here
-      #
-      # m = /^expected (.*?), got (.*?)(\s+with backtrace:)?/.match(line)
-      if ! unescaped_line.strip.empty?
-        expected_and_got_match = /^expected\s+(.*?), got\s+(.*)/.match(unescaped_line)
-        if expected_and_got_match # we've exited the description
-          self.expected = expected_and_got_match[1]
-          if expected_and_got_match[2].end_with?("with backtrace:")
-            self.got = expected_and_got_match[2].sub(/\s+with backtrace:/, '')
-            in_backtrace = true
-            self.failure_notes << "comparison backtrace:"
-          else
-            self.got = expected_and_got_match[2]
-          end
-        elsif ! in_backtrace
-          prefix, content = message_line_components(unescaped_line)
-          if ! message_line_assignment_by_prefix(prefix, content, line)
-            self.description << line
-          end
-        else # backtrace line
-          self.failure_notes << unescaped_line.sub(/^# /, '')
+
+      next if unescaped_line.strip.empty?
+
+
+      components = message_line_components(unescaped_line)
+      if (components.keys & %w[expected got]).size > 0
+        self.expected = components["expected"] if components.has_key? "expected"
+        self.got      = components["got"]      if components.has_key? "got"
+      end
+      if !in_backtrace && unescaped_line.end_with?("with backtrace:")
+        in_backtrace = true
+      end
+      if in_backtrace
+        if meta_backtrace_line?( unescaped_line )
+          add_meta_backtrace_line(unescaped_line)
+        else
+          # not sure if this is actually a thing or not.
+          self.failure_notes << unescaped_line
         end
       end
     end
