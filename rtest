@@ -225,10 +225,16 @@ numeric_options = ARGV.select{|o| /^-?\d+$/.match(o)}
 begin
   options_parser.parse(ARGV.reject{|o| /^-?\d+$/.match(o)})
 rescue OptionParser::MissingArgument => e
-  puts "That was not a valid argument.\n\t#{e.message.sub("missing argument: ", '')}\n\n"
+  puts "That option requires an argument: \n\t#{e.message.sub("missing argument: ", '')}\n\n"
   puts "------------------------------------------"
   puts USAGE
   exit 75 # EX_TEMPFAIL (user input)
+rescue OptionParser::InvalidOption => e
+  puts "That is not a supported argument: \n\t#{e.message.sub("invalid option: ", '')}\n\n"
+  puts "------------------------------------------"
+  puts USAGE
+  exit 75 # EX_TEMPFAIL (user input)
+
 end
 REMAINING_ARGS = ARGV.reject{|o| /^-\w+\S*|^--[-\w]+(?:=\S+)$/.match(o)} + numeric_options
 OPTIONS=@options
@@ -647,6 +653,11 @@ end
 
 ################
 
+def invalid_failure_number_error(number, past_run_data)
+  puts "Unable to find a failure with the number #{number}"
+  puts "Valid failure numbers are: #{past_run_data.failures.map(&:display_number).join(", ")}"
+  exit 75 # EX_TEMPFAIL (user input)
+end
 
 
 def display_failures(failures)
@@ -1084,20 +1095,24 @@ elsif /^\d+$/.match(INPUT) || OPTIONS[:rspec]
   offset = REMAINING_ARGS.size > 0 ? REMAINING_ARGS[0].to_i : 0
   # NOTE: display happens during rerun
   failure= past_run_data.get_failure_by_number(failure_number)
-  failure.offset = offset
-  if !OPTIONS[:rspec]
-    updated_run_data = Rerunner.new(past_run_data).rerun(failure_number)
+  if !failure.nil?
+    failure.offset = offset
+    if !OPTIONS[:rspec]
+      updated_run_data = Rerunner.new(past_run_data).rerun(failure_number)
+    else
+      # we can't run it ourselves or we'll hang on byebug or
+      # binding.pry lines
+      #
+      # we _could_ do it the way we do the other interactive stuff
+      # but the idea here was to make it trivial to rerun something in
+      # rspec directly
+      puts "bundle exec rspec #{failure.rspec_arg}"
+      exit 0
+    end
+    update_record(updated_run_data)
   else
-    # we can't run it ourselves or we'll hang on byebug or
-    # binding.pry lines
-    #
-    # we _could_ do it the way we do the other interactive stuff
-    # but the idea here was to make it trivial to rerun something in
-    # rspec directly
-    puts "bundle exec rspec #{failure.rspec_arg}"
-    exit 0
+    invalid_failure_number_error(failure_number, past_run_data)
   end
-  update_record(updated_run_data)
   # rerunner will take care of mentioning fixed tests
 elsif INPUT == "rerun"
  if ! past_run_data.has_failures?
