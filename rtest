@@ -586,21 +586,6 @@ end
 
 
 ################
-# terminal interactivity stuff
-# in case you use binding.pry or byebug
-# type things
-def currently_verbose?
-  @current_verboseness_state ||= VERBOSE
-  return true if @current_verboseness_state
-  if AUTO_VERBOSE > 0 && (Time.now.to_i - START) >= AUTO_VERBOSE
-    if @current_verboseness_state == false
-      puts "\nℹ️  Auto-enabling \"Verbose mode\" after #{AUTO_VERBOSE} seconds.\n"
-      @current_verboseness_state = true
-    end
-    return true
-  end
-  false
-end
 
 def process_running?(pid)
   Process.getpgid(pid)
@@ -630,7 +615,7 @@ def wait_for_read(reader, pid, last_line, counter = 0)
   # potential debugger pause lines
   running = process_running?(pid)
   while running && ! reader.ready?
-    putc "." unless currently_verbose? #ironically
+    putc "." unless VERBOSE #ironically
     return :debugger if definite_debugger_line(last_line)
     if last_line && potential_debugger_pause(last_line)
       counter += 1
@@ -757,7 +742,7 @@ def truncate_long_lines(lines, max=SCREEN_WIDTH)
 end
 
 def printable_failure_notes(failure)
-  displayable_list = currently_verbose? ? failure.failure_notes : failure.failure_notes[0..9]
+  displayable_list = VERBOSE ? failure.failure_notes : failure.failure_notes[0..9]
   displayable_list = truncate_long_lines(displayable_list)
   path_lines_truncator("\t#{FAILURE_NOTE_LINE_COLOR}",
                        displayable_list.map{ |x| "\t▷ #{x}" },
@@ -767,7 +752,7 @@ def printable_failure_notes(failure)
 end
 
 def printable_backtrace(backtrace)
-  displayable_list = currently_verbose? ? backtrace : backtrace[0..9]
+  displayable_list = VERBOSE ? backtrace : backtrace[0..9]
   path_lines_truncator("\t#{BACKTRACE_COLOR}",
                        displayable_list,
                        COLOR_RESET,
