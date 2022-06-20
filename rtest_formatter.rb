@@ -122,21 +122,9 @@ class Failure
   private
 
   def incorporate_meta_backtrace
-    # open('/Users/masukomi/workspace/rtest/debugging.txt', 'a') { |f|
-    #   f.puts "meta_backtrace:"
-    #   f.puts JSON.pretty_generate(@meta_backtrace)
-    #   f.puts "backtrace:"
-    #   f.puts JSON.pretty_generate(self.backtrace)
-    # }
-
-
     return true if @meta_backtrace.empty?
     self.backtrace = @meta_backtrace + self.backtrace
     @meta_backtrace = []
-    # open('/Users/masukomi/workspace/rtest/debugging.txt', 'a') { |f|
-    #   f.puts "updated backtrace:"
-    #   f.puts JSON.pretty_generate(self.backtrace)
-    # }
   end
 
   def unescape(text)
@@ -169,27 +157,12 @@ class Failure
 
     return false if lines.empty?
 
-    open('/Users/masukomi/workspace/rtest/debugging.txt', 'a') { |f|
-      f.puts "content for: #{notification.description}"
-      f.puts "original notification lines"
-      f.puts JSON.pretty_generate(notification.colorized_message_lines.map{ |l|unescape(l) })
-
-      # begin
-      #   raise "bullshit"
-      # rescue Exception => e
-      #   f.puts "backtrace to extract_message_elements: "
-      #   f.puts(JSON.pretty_generate(e.backtrace[0..10]))
-      # end
-    }
-
 
     complex_extraction = unescape(lines.first) == "Failure/Error:" \
                          || lines.any?{ |line| !! /^expected .*?, got /.match(unescape(line)) }
     if complex_extraction
-      open('/Users/masukomi/workspace/rtest/debugging.txt', 'a') { |f| f.puts("complex extraction")}
       complex_message_extraction(lines)
     else
-      open('/Users/masukomi/workspace/rtest/debugging.txt', 'a') { |f| f.puts("simple extraction")}
       simple_message_extraction(lines)
     end
   end
@@ -285,15 +258,11 @@ class Failure
     #   "# ./spec/object/upload_stream_spec.rb:448:in `block (4 levels) in <module:S3>'"
     # ]
 
-    # open('/Users/masukomi/workspace/rtest/debugging.txt', 'a') { |f| f.puts "complex error message (#{lines.size} lines):\n#{JSON.pretty_generate(lines)}" }
-    # open('/Users/masukomi/workspace/rtest/debugging.txt', 'a') { |f| f.puts "complex error sub-array (#{lines[1..-1].size} lines):\n#{JSON.pretty_generate(lines[1..-1])}" }
-
     in_backtrace = false
     # 1st line is useless
     return if lines.size == 1 ## theoretically can't happen
     lines[1..-1].each_with_index do | line, index |
 
-      # open('/Users/masukomi/workspace/rtest/debugging.txt', 'a') { |f| f.puts "processing (#{index + 1}): #{line}"}
       unescaped_line = unescape(line)
 
       next if unescaped_line.strip.empty?
