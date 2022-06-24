@@ -762,6 +762,7 @@ def printable_backtrace(backtrace)
   else
     "\n\t#{BACKTRACE_COLOR}Backtrace Unavailable#{COLOR_RESET}"
   end
+  # "\t#{BACKTRACE_COLOR}" + displayable_list.join("\n\t") + COLOR_RESET
 end
 
 def unescape(text)
@@ -848,10 +849,12 @@ def printable_file_and_line_num(failure)
 
   end
   if failure.error_file_path
-      lines << path_line_truncator("\tERROR HERE  : #{ERROR_HERE_LINE_COLOR}",
+    lines << path_line_truncator("\tERROR HERE  : #{ERROR_HERE_LINE_COLOR}",
                           failure.error_file_path,
                           "#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure.error_line_number}#{COLOR_RESET}"
                                   )
+    lines << "\t             in -> #{failure.error_method}" if failure.error_method
+
   elsif failure.error_method
     lines << "\tERROR METHOD: #{ERROR_HERE_LINE_COLOR}#{failure.error_method}#{COLOR_RESET}"
   end
