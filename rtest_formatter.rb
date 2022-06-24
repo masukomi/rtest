@@ -125,7 +125,8 @@ class Failure
   def incorporate_meta_backtrace
     return true if @meta_backtrace.empty?
 
-    self.backtrace = @meta_backtrace.map { |b| "meta: #{b}" } + backtrace
+    # self.backtrace = @meta_backtrace.map { |b| "meta: #{b}" } + backtrace
+    self.backtrace = @meta_backtrace + backtrace
     @meta_backtrace = []
   end
 
