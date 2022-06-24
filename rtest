@@ -925,11 +925,15 @@ end
 def path_to_formatter
   RTEST_DIR + File::SEPARATOR + "rtest_formatter.rb"
 end
+
+def rspec_command(spec)
+  "bundle exec rspec #{spec} --require #{path_to_formatter()} --format RtestFormatter 2>&1"
+end
 # returns a RunLog
 def run_this(spec, update_file, retries = 0)
   # in a successful run there's nothing in STDERR (2)
   # it's all STDOUT (1)
-  run_line ="bundle exec rspec #{spec} --require #{path_to_formatter} --format RtestFormatter 2>&1"
+  run_line = rspec_command(spec)
   # STDERR.puts("XXX running: #{run_line}")
   # Redirecting STDERR to STDOUT because rspec is...
   # They've made "interesting" choices about what goes where
@@ -1087,10 +1091,15 @@ elsif /.*_spec.rb(:\d+)?$/.match(INPUT) \
       STDERR.puts("Please try again with a valid path.")
       exit 64 # EX_USAGE
     end
-    puts "Running specs in #{INPUT}\n"
-    # must be a spec file
-    updated_run_data = run_this(INPUT, true)
-    updated_run_data = update_record_and_display(updated_run_data)
+    if ! OPTIONS[:fspec]
+      puts "Running specs in #{INPUT}\n"
+      # must be a spec file
+      updated_run_data = run_this(INPUT, true)
+      updated_run_data = update_record_and_display(updated_run_data)
+    else
+      puts rspec_command(INPUT)
+      exit 0
+    end
   elsif INPUT == "last_file"
     if ! past_run_data.has_failures?
       puts "No file data from last run"
@@ -1107,9 +1116,14 @@ elsif /.*_spec.rb(:\d+)?$/.match(INPUT) \
     update_record(updated_run_data)
     # rerunner will take care of mentioning fixed tests
   elsif INPUT == "all"
-    puts "Running ALL specs...\n"
-    updated_run_data = run_this('', true)
-    updated_run_data = update_record_and_display(updated_run_data)
+    if ! OPTIONS[:fspec]
+      puts "Running ALL specs...\n"
+      updated_run_data = run_this('', true)
+      updated_run_data = update_record_and_display(updated_run_data)
+    else
+      puts rspec_command("")
+      exit 0
+    end
   end
   # output_run_results(updated_run_data)
   puts NO_FAILURES_TEXT unless updated_run_data.has_failures?
