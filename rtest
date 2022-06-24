@@ -680,8 +680,8 @@ def display_failure(failure, index = -1)
 
   puts printable_file_and_line_num(failure)
 
-  puts "\t\t#{EXPECTED_LINE_COLOR}expected: #{failure.expected}#{COLOR_RESET}" if failure.expected
-  puts "\t\t#{GOT_LINE_COLOR     }got     : #{failure.got}#{COLOR_RESET}" if failure.got
+  puts "\t#{EXPECTED_LINE_COLOR}expected: #{failure.expected}#{COLOR_RESET}" if failure.expected
+  puts "\t#{GOT_LINE_COLOR     }got     : #{failure.got}#{COLOR_RESET}" if failure.got
 
   puts printable_backtrace(failure.backtrace)
   # puts "\n\t\tDiff:\n#{failure.diff.join("\n\t\t")}" if failure.diff
@@ -753,11 +753,15 @@ end
 
 def printable_backtrace(backtrace)
   displayable_list = VERBOSE ? backtrace : backtrace[0..9]
-  path_lines_truncator("\t#{BACKTRACE_COLOR}",
+
+  if displayable_list.size > 0
+    "\n" + path_lines_truncator("\t#{BACKTRACE_COLOR}",
                        displayable_list,
                        COLOR_RESET,
                        {force: true})
-  # "\t#{BACKTRACE_COLOR}" + displayable_list.join("\n\t") + COLOR_RESET
+  else
+    "\n\t#{BACKTRACE_COLOR}Backtrace Unavailable#{COLOR_RESET}"
+  end
 end
 
 def unescape(text)
@@ -837,17 +841,19 @@ def printable_file_and_line_num(failure)
   if failure.spec_file_path
     # if so, we're going to display the spec error & where it blew up in the file
     lines << path_line_truncator(
-      "\tFAILED SPEC: #{ERROR_HERE_LINE_COLOR}",
+      "\tFAILED SPEC : #{ERROR_HERE_LINE_COLOR}",
       failure.spec_file_path,
       "#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure.spec_line_number}#{COLOR_RESET}"
     )
 
   end
   if failure.error_file_path
-      lines << path_line_truncator("\tERROR HERE : #{ERROR_HERE_LINE_COLOR}",
+      lines << path_line_truncator("\tERROR HERE  : #{ERROR_HERE_LINE_COLOR}",
                           failure.error_file_path,
                           "#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure.error_line_number}#{COLOR_RESET}"
-      )
+                                  )
+  elsif failure.error_method
+    lines << "\tERROR METHOD: #{ERROR_HERE_LINE_COLOR}#{failure.error_method}#{COLOR_RESET}"
   end
   lines.join("\n")
 end
