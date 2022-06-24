@@ -296,11 +296,20 @@ class Failure
       next if unescaped_line.strip.empty?
 
       components = message_line_components(unescaped_line)
-      if (components.keys & %w[expected got]).size.positive?
+      has_expected_or_got  = (components.keys & %w[expected got]).size.positive?
+      if has_expected_or_got
         self.expected = components['expected'] if components.key? 'expected'
         self.got      = components['got']      if components.key? 'got'
       end
-      in_backtrace = true if !in_backtrace && unescaped_line.end_with?('with backtrace:')
+
+      if !in_backtrace && unescaped_line.end_with?('with backtrace:')
+        in_backtrace = true
+        next
+      elsif has_expected_or_got
+        next
+      end
+
+
       if in_backtrace
         if meta_backtrace_line?(unescaped_line)
           add_meta_backtrace_line(unescaped_line)
