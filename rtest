@@ -154,6 +154,7 @@ SUCCESS_COLOR="\e[38;2;7;198;25m"
 
 RTEST_DIR=__dir__
 
+
 # The regex to match ANSI codes
 # from https://github.com/piotrmurach/strings-ansi
 ANSI_MATCHER = %r{
@@ -580,6 +581,223 @@ class Rerunner
 
 end
 
+class FailurePrinter
+
+  def self.print(failure, potential_display_number=-1)
+    f = FailurePrinter.new(failure, potential_display_number)
+    f.begin
+  end
+
+  attr_accessor :failure, :potential_display_number
+
+  def initialize(failure, potential_display_number = -1)
+    self.failure = failure
+    self.potential_display_number = potential_display_number
+  end
+
+  def begin
+    print_description(failure, potential_display_number + 1)
+
+    puts printable_failure_notes(failure) if failure.has_notes?
+    puts ""
+
+    puts printable_file_and_line_num(failure)
+
+    puts "\t#{EXPECTED_LINE_COLOR}expected: #{failure.expected}#{COLOR_RESET}" if failure.expected
+    puts "\t#{GOT_LINE_COLOR     }got     : #{failure.got}#{COLOR_RESET}" if failure.got
+
+    puts printable_backtrace(failure.backtrace)
+    # puts "\n\t\tDiff:\n#{failure.diff.join("\n\t\t")}" if failure.diff
+
+  end
+
+  private
+
+  def print_description(failure, potential_display_number)
+    display_number = failure.display_number.nil? ? potential_display_number : failure.display_number
+    name_lines = truncate_long_line(failure.test_name)
+    if name_lines.size == 0
+      puts "\n#{ERROR_LINE_COLOR}#{display_number}: #{failure.test_name}#{COLOR_RESET}\n"
+    else
+      number_spaces=" " * (display_number.to_s.length + 1)
+      puts "\n#{ERROR_LINE_COLOR}#{display_number}: #{name_lines.first}#{COLOR_RESET}\n"
+      name_lines[1..-1].each do | line |
+        puts "#{ERROR_LINE_COLOR}#{number_spaces} #{line.lstrip}#{COLOR_RESET}"
+      end
+    end
+    if failure.description.size > 1
+      # well crap. We're dealing with something like this
+      # [
+      #   "expect do",
+      #   "object.upload_stream(tempfile: true) do |write_stream|",
+      #   "write_stream << seventeen_mb",
+      #   "end",
+      #   "end.to raise_error(",
+      #   "S3::MultipartUploadError,",
+      #   "'failed to abort multipart upload: network-error'",
+      #   ")",
+      # ]
+
+      failure.description.each do | line |
+        puts "\t#{DETAIL_LINE_COLOR}#{line}#{COLOR_RESET}"
+      end
+    end
+  end
+
+  def printable_failure_notes(failure)
+    displayable_list = VERBOSE ? failure.failure_notes : failure.failure_notes[0..9]
+    displayable_list = truncate_long_lines(displayable_list)
+    path_lines_truncator("\t#{FAILURE_NOTE_LINE_COLOR}",
+                        displayable_list.map{ |x| "\t▷ #{x}" },
+                        COLOR_RESET,
+                        {force: true})
+    # "\n\t#{FAILURE_NOTE_LINE_COLOR}" + displayable_list.join("\n\t") + COLOR_RESET
+  end
+
+  def printable_file_and_line_num(failure)
+    lines = []
+
+    if failure.spec_file_path
+      # if so, we're going to display the spec error & where it blew up in the file
+      lines << path_line_truncator(
+        "\tFAILED SPEC : #{ERROR_HERE_LINE_COLOR}",
+        failure.spec_file_path,
+        "#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure.spec_line_number}#{COLOR_RESET}"
+      )
+
+    end
+    if failure.error_file_path
+      lines << path_line_truncator("\tERROR HERE  : #{ERROR_HERE_LINE_COLOR}",
+                            failure.error_file_path,
+                            "#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure.error_line_number}#{COLOR_RESET}"
+                                    )
+      lines << "\t             in -> #{failure.error_method}" if failure.error_method
+
+    elsif failure.error_method
+      lines << "\tERROR METHOD: #{ERROR_HERE_LINE_COLOR}#{failure.error_method}#{COLOR_RESET}"
+    end
+    lines.join("\n")
+  end
+
+  def printable_backtrace(backtrace)
+    displayable_list = VERBOSE ? backtrace : backtrace[0..9]
+
+    if displayable_list.size > 0
+      "\n" + path_lines_truncator("\t#{BACKTRACE_COLOR}",
+                        displayable_list,
+                        COLOR_RESET,
+                        {force: true})
+    else
+      "\n\t#{BACKTRACE_COLOR}Backtrace Unavailable#{COLOR_RESET}"
+    end
+    # "\t#{BACKTRACE_COLOR}" + displayable_list.join("\n\t") + COLOR_RESET
+  end
+
+  def truncate_long_line(line, max=SCREEN_WIDTH)
+    new_lines = []
+    spaces=(0 ... line.length).find_all { |i| line[i,1].match(/\s/) }
+    splits = spaces.select{ |x| x <= max }
+    # split on the first space < 90% of the length
+    split_on = splits.select{|x| x < (max * 0.9) }.last
+    return [line] if split_on.nil?
+
+    new_lines << line[0..split_on] + COLOR_RESET
+    remainder = line[split_on..-1]
+    if remainder.size > max
+      new_lines += truncate_long_line(remainder, max)
+    elsif ! unescape(remainder).strip.empty?
+      new_lines << remainder
+    end
+    new_lines
+  end
+
+  def truncate_long_lines(lines, max=SCREEN_WIDTH)
+    new_lines = []
+    lines.each do | line|
+      if line.length <= SCREEN_WIDTH
+        new_lines << line
+      else
+        new_lines += truncate_long_line(line)
+      end
+    end
+    new_lines
+  end
+
+  def path_lines_truncator(preface, paths, suffix, line_options={})
+    paths.map{ |maybe_path|
+      if line_is_path?(unescape(maybe_path))
+        path_line_truncator(preface, maybe_path, suffix, line_options)
+      else
+        maybe_path
+      end
+    }.join("\n")
+  end
+
+  # a path line is a line that ends in a file path
+  # it may or may not, have a preface.
+  # to force truncation even when not in shortened_paths mode
+  # set line_options[:force] = true
+  def path_line_truncator(preface, path, suffix, line_options={})
+    #TODO calculate how long a tab stop is
+    #for now i'm assuming the default of 8 characters
+    line_options[:soft_max] = SCREEN_WIDTH unless line_options[:soft_max]
+
+    untruncated_line = preface + path + suffix
+    if ! OPTIONS[:shortened_paths] && ! line_options[:force]
+      return untruncated_line
+    else
+      tab_length = 8
+      preface ||= ""
+      unescaped_preface = unescape(preface)
+      unescaped_suffix = unescape(suffix)
+      non_file_length =  unescaped_preface.length \
+                         + (unescaped_preface.gsub(/[^\t]/, '').length \
+                            * (tab_length - 1)) \
+                         + unescaped_suffix.length
+
+      basename = File.basename(path)
+      elipsis_basename = "…#{File::SEPARATOR}#{basename}"
+
+      if basename.length >= line_options[:soft_max]
+        return elipsis_basename
+      else
+        available_chars = line_options[:soft_max] \
+                          - elipsis_basename.length \
+                          - non_file_length
+        path_chunks = path.split(File::SEPARATOR)
+        returnable = []
+
+        # efficient? no, not really, but easy to think about? yes
+        # and yeah, there's got to be a better way to do this.
+        # TODO: refactor this to be less... kludgey
+        (0..path_chunks.length).each do | index |
+          if index != path_chunks.length
+            chunk = path_chunks[index]
+            returnable << chunk
+            if returnable.join(File::SEPARATOR).length > available_chars
+              return preface +
+                    (returnable[0..-2] + [elipsis_basename]).join(File::SEPARATOR) +
+                    suffix
+            end
+          else
+            return untruncated_line
+          end
+        end
+      end
+    end
+  end
+
+
+  # only used for truncation decision
+  # it's unlikely any single file name in the current dir
+  # will be long enough to need truncation ;)
+  def line_is_path?(line)
+    line.split(File::SEPARATOR).size > 1 \
+      && /^\s*\.?\//.match(line)
+  end
+
+
+end # END  FailurePrinter
 
 
 #------------------------
@@ -647,6 +865,10 @@ end
 
 ################
 
+def unescape(text)
+  text.gsub(ANSI_MATCHER, '')
+end
+
 def invalid_failure_number_error(number, past_run_data)
   puts "Unable to find a failure with the number #{number}"
   puts "Valid failure numbers are: #{past_run_data.failures.map(&:display_number).join(", ")}"
@@ -656,220 +878,9 @@ end
 
 def display_failures(failures)
   failures.each_with_index do | failure, idx |
-    display_failure(failure, idx)
+    FailurePrinter.print(failure, idx)
   end
 end
-
-def reformat_failure_details(details)
-  details_lines = details.split("\n")
-  if details_lines.size > 2
-    # 2 because it's typically
-    # [0]<error line>\n[1]<blank line>\n[2]<error message>
-    (2..(details_lines.size - 1) ).each do | idx |
-      details_lines[idx] = "\t►#{details_lines[idx]}"
-    end
-  end
-  "\t" + details_lines.join("\n")
-end
-
-def display_failure(failure, index = -1)
-  print_description(failure, index + 1)
-
-  puts printable_failure_notes(failure) if failure.has_notes?
-  puts ""
-
-  puts printable_file_and_line_num(failure)
-
-  puts "\t#{EXPECTED_LINE_COLOR}expected: #{failure.expected}#{COLOR_RESET}" if failure.expected
-  puts "\t#{GOT_LINE_COLOR     }got     : #{failure.got}#{COLOR_RESET}" if failure.got
-
-  puts printable_backtrace(failure.backtrace)
-  # puts "\n\t\tDiff:\n#{failure.diff.join("\n\t\t")}" if failure.diff
-end
-
-def print_description(failure, potential_display_number)
-  display_number = failure.display_number.nil? ? potential_display_number : failure.display_number
-  name_lines = truncate_long_line(failure.test_name)
-  if name_lines.size == 0
-    puts "\n#{ERROR_LINE_COLOR}#{display_number}: #{failure.test_name}#{COLOR_RESET}\n"
-  else
-    number_spaces=" " * (display_number.to_s.length + 1)
-    puts "\n#{ERROR_LINE_COLOR}#{display_number}: #{name_lines.first}#{COLOR_RESET}\n"
-    name_lines[1..-1].each do | line |
-      puts "#{ERROR_LINE_COLOR}#{number_spaces} #{line.lstrip}#{COLOR_RESET}"
-    end
-  end
-  if failure.description.size > 1
-    # well crap. We're dealing with something like this
-    # [
-    #   "expect do",
-    #   "object.upload_stream(tempfile: true) do |write_stream|",
-    #   "write_stream << seventeen_mb",
-    #   "end",
-    #   "end.to raise_error(",
-    #   "S3::MultipartUploadError,",
-    #   "'failed to abort multipart upload: network-error'",
-    #   ")",
-    # ]
-
-    failure.description.each do | line |
-      puts "\t#{DETAIL_LINE_COLOR}#{line}#{COLOR_RESET}"
-    end
-
-  end
-
-
-end
-
-def truncate_long_line(line, max=SCREEN_WIDTH)
-  new_lines = []
-  spaces=(0 ... line.length).find_all { |i| line[i,1].match(/\s/) }
-  splits = spaces.select{ |x| x <= max }
-  # split on the first space < 90% of the length
-  split_on = splits.select{|x| x < (max * 0.9) }.last
-  return [line] if split_on.nil?
-
-  new_lines << line[0..split_on] + COLOR_RESET
-  remainder = line[split_on..-1]
-  if remainder.size > max
-    new_lines += truncate_long_line(remainder, max)
-  elsif ! unescape(remainder).strip.empty?
-    new_lines << remainder
-  end
-  new_lines
-end
-def truncate_long_lines(lines, max=SCREEN_WIDTH)
-  new_lines = []
-  lines.each do | line|
-    if line.length <= SCREEN_WIDTH
-      new_lines << line
-    else
-      new_lines += truncate_long_line(line)
-    end
-  end
-  new_lines
-end
-
-def printable_failure_notes(failure)
-  displayable_list = VERBOSE ? failure.failure_notes : failure.failure_notes[0..9]
-  displayable_list = truncate_long_lines(displayable_list)
-  path_lines_truncator("\t#{FAILURE_NOTE_LINE_COLOR}",
-                       displayable_list.map{ |x| "\t▷ #{x}" },
-                       COLOR_RESET,
-                       {force: true})
-  # "\n\t#{FAILURE_NOTE_LINE_COLOR}" + displayable_list.join("\n\t") + COLOR_RESET
-end
-
-def printable_backtrace(backtrace)
-  displayable_list = VERBOSE ? backtrace : backtrace[0..9]
-
-  if displayable_list.size > 0
-    "\n" + path_lines_truncator("\t#{BACKTRACE_COLOR}",
-                       displayable_list,
-                       COLOR_RESET,
-                       {force: true})
-  else
-    "\n\t#{BACKTRACE_COLOR}Backtrace Unavailable#{COLOR_RESET}"
-  end
-  # "\t#{BACKTRACE_COLOR}" + displayable_list.join("\n\t") + COLOR_RESET
-end
-
-def unescape(text)
-  text.gsub(ANSI_MATCHER, '')
-end
-
-def path_lines_truncator(preface, paths, suffix, line_options={})
-  paths.map{ |maybe_path|
-    if line_is_path?(unescape(maybe_path))
-      path_line_truncator(preface, maybe_path, suffix, line_options)
-    else
-      maybe_path
-    end
-  }.join("\n")
-end
-
-# only used for truncation decision
-# it's unlikely any single file name in the current dir
-# will be long enough to need truncation ;)
-def line_is_path?(line)
-  line.split(File::SEPARATOR).size > 1 \
-    && /^\s*\.?\//.match(line)
-end
-
-# a path line is a line that ends in a file path
-# it may or may not, have a preface.
-# to force truncation even when not in shortened_paths mode
-# set line_options[:force] = true
-def path_line_truncator(preface, path, suffix, line_options={})
-  #TODO calculate how long a tab stop is
-  #for now i'm assuming the default of 8 characters
-  line_options[:soft_max] = SCREEN_WIDTH unless line_options[:soft_max]
-
-  untruncated_line = preface + path + suffix
-  if ! OPTIONS[:shortened_paths] && ! line_options[:force]
-    return untruncated_line
-  else
-    tab_length = 8
-    preface ||= ""
-    unescaped_preface = unescape(preface)
-    unescaped_suffix = unescape(suffix)
-    non_file_length =  unescaped_preface.length + (unescaped_preface.gsub(/[^\t]/, '').length * (tab_length - 1)) + unescaped_suffix.length
-
-    basename = File.basename(path)
-    elipsis_basename = "…#{File::SEPARATOR}#{basename}"
-
-    if basename.length >= line_options[:soft_max]
-      return elipsis_basename
-    else
-      available_chars = line_options[:soft_max] - elipsis_basename.length - non_file_length
-      path_chunks = path.split(File::SEPARATOR)
-      returnable = []
-
-      # efficient? no, not really, but easy to think about? yes
-      # and yeah, there's got to be a better way to do this.
-      # TODO: refactor this to be less... kludgey
-      (0..path_chunks.length).each do | index |
-        if index != path_chunks.length
-          chunk = path_chunks[index]
-          returnable << chunk
-          if returnable.join(File::SEPARATOR).length > available_chars
-            return preface +
-                  (returnable[0..-2] + [elipsis_basename]).join(File::SEPARATOR) +
-                  suffix
-          end
-        else
-          return untruncated_line
-        end
-      end
-    end
-  end
-end
-
-def printable_file_and_line_num(failure)
-  lines = []
-
-  if failure.spec_file_path
-    # if so, we're going to display the spec error & where it blew up in the file
-    lines << path_line_truncator(
-      "\tFAILED SPEC : #{ERROR_HERE_LINE_COLOR}",
-      failure.spec_file_path,
-      "#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure.spec_line_number}#{COLOR_RESET}"
-    )
-
-  end
-  if failure.error_file_path
-    lines << path_line_truncator("\tERROR HERE  : #{ERROR_HERE_LINE_COLOR}",
-                          failure.error_file_path,
-                          "#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure.error_line_number}#{COLOR_RESET}"
-                                  )
-    lines << "\t             in -> #{failure.error_method}" if failure.error_method
-
-  elsif failure.error_method
-    lines << "\tERROR METHOD: #{ERROR_HERE_LINE_COLOR}#{failure.error_method}#{COLOR_RESET}"
-  end
-  lines.join("\n")
-end
-
 
 # returns a RunLog
 def process_rspec_output(output)
