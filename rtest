@@ -689,7 +689,16 @@ end
 
 def print_description(failure, potential_display_number)
   display_number = failure.display_number.nil? ? potential_display_number : failure.display_number
-  puts "\n#{ERROR_LINE_COLOR}#{display_number}: #{failure.test_name}#{COLOR_RESET}\n"
+  name_lines = truncate_long_line(failure.test_name)
+  if name_lines.size == 0
+    puts "\n#{ERROR_LINE_COLOR}#{display_number}: #{failure.test_name}#{COLOR_RESET}\n"
+  else
+    number_spaces=" " * (display_number.to_s.length + 1)
+    puts "\n#{ERROR_LINE_COLOR}#{display_number}: #{name_lines.first}#{COLOR_RESET}\n"
+    name_lines[1..-1].each do | line |
+      puts "#{ERROR_LINE_COLOR}#{number_spaces} #{line.lstrip}#{COLOR_RESET}"
+    end
+  end
   if failure.description.size > 1
     # well crap. We're dealing with something like this
     # [
