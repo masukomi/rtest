@@ -272,6 +272,50 @@ INPUT = REMAINING_ARGS.size > 0 ? REMAINING_ARGS.shift : nil
 START=Time.now.to_i
 
 #-----------------------
+module PrintHelpers
+
+  def print_wrapped_test_name(color, display_number, test_name, first_line_prefix = "")
+    name_lines = truncate_long_line(test_name)
+    if name_lines.size == 1
+      puts "\n#{first_line_prefix}#{color}#{display_number}: #{name_lines.first}#{COLOR_RESET}\n"
+    else
+      number_spaces=" " * (display_number.to_s.length + 1 + first_line_prefix.to_s.length)
+      puts "\n#{first_line_prefix}#{color}#{display_number}: #{name_lines.first}#{COLOR_RESET}\n"
+      name_lines[1..-1].each do | line |
+        puts "#{color}#{number_spaces} #{line.lstrip}#{COLOR_RESET}"
+      end
+    end
+  end
+  def truncate_long_line(line, max=SCREEN_WIDTH)
+    new_lines = []
+    spaces=(0 ... line.length).find_all { |i| line[i,1].match(/\s/) }
+    splits = spaces.select{ |x| x <= max }
+    # split on the first space < 90% of the length
+    split_on = splits.select{|x| x < (max * 0.9) }.last
+    return [line] if split_on.nil?
+
+    new_lines << line[0..split_on] + COLOR_RESET
+    remainder = line[split_on..-1]
+    if remainder.size > max
+      new_lines += truncate_long_line(remainder, max)
+    elsif ! unescape(remainder).strip.empty?
+      new_lines << remainder
+    end
+    new_lines
+  end
+
+  def truncate_long_lines(lines, max=SCREEN_WIDTH)
+    new_lines = []
+    lines.each do | line|
+      if line.length <= SCREEN_WIDTH
+        new_lines << line
+      else
+        new_lines += truncate_long_line(line)
+      end
+    end
+    new_lines
+  end
+end
 class Failure
   UNPERSISTABLE_ATTRS = Set.new( %i[display_number killable offset persisted] ).freeze
 
@@ -515,6 +559,7 @@ end
 # In order to accomplish 2 we need to create
 # a new "past run"  object that we can populate with
 class Rerunner
+  include PrintHelpers
   attr_accessor :run_log
 
   def initialize(run_log)
@@ -575,14 +620,14 @@ class Rerunner
   private
 
   def fixed_failure_message(failure)
-    "\n✅ #{SUCCESS_COLOR}FIXED: #{failure.message}#{COLOR_RESET}"
+    print_wrapped_test_name(SUCCESS_COLOR, "FIXED", failure.test_name, "✅ ")
   end
 
 
 end
 
 class FailurePrinter
-
+  include PrintHelpers
   def self.print(failure, potential_display_number=-1)
     f = FailurePrinter.new(failure, potential_display_number)
     f.begin
@@ -614,17 +659,11 @@ class FailurePrinter
   private
 
   def print_description(failure, potential_display_number)
-    display_number = failure.display_number.nil? ? potential_display_number : failure.display_number
-    name_lines = truncate_long_line(failure.test_name)
-    if name_lines.size == 0
-      puts "\n#{ERROR_LINE_COLOR}#{display_number}: #{failure.test_name}#{COLOR_RESET}\n"
-    else
-      number_spaces=" " * (display_number.to_s.length + 1)
-      puts "\n#{ERROR_LINE_COLOR}#{display_number}: #{name_lines.first}#{COLOR_RESET}\n"
-      name_lines[1..-1].each do | line |
-        puts "#{ERROR_LINE_COLOR}#{number_spaces} #{line.lstrip}#{COLOR_RESET}"
-      end
-    end
+    display_number = failure.display_number.nil? ? potential_display_number \
+                     : failure.display_number
+
+    print_wrapped_test_name(ERROR_LINE_COLOR, display_number, failure.test_name)
+
     if failure.description.size > 1
       # well crap. We're dealing with something like this
       # [
@@ -693,35 +732,6 @@ class FailurePrinter
     # "\t#{BACKTRACE_COLOR}" + displayable_list.join("\n\t") + COLOR_RESET
   end
 
-  def truncate_long_line(line, max=SCREEN_WIDTH)
-    new_lines = []
-    spaces=(0 ... line.length).find_all { |i| line[i,1].match(/\s/) }
-    splits = spaces.select{ |x| x <= max }
-    # split on the first space < 90% of the length
-    split_on = splits.select{|x| x < (max * 0.9) }.last
-    return [line] if split_on.nil?
-
-    new_lines << line[0..split_on] + COLOR_RESET
-    remainder = line[split_on..-1]
-    if remainder.size > max
-      new_lines += truncate_long_line(remainder, max)
-    elsif ! unescape(remainder).strip.empty?
-      new_lines << remainder
-    end
-    new_lines
-  end
-
-  def truncate_long_lines(lines, max=SCREEN_WIDTH)
-    new_lines = []
-    lines.each do | line|
-      if line.length <= SCREEN_WIDTH
-        new_lines << line
-      else
-        new_lines += truncate_long_line(line)
-      end
-    end
-    new_lines
-  end
 
   def path_lines_truncator(preface, paths, suffix, line_options={})
     paths.map{ |maybe_path|
