@@ -282,7 +282,7 @@ module PrintHelpers
       number_spaces=" " * (display_number.to_s.length + 1 + first_line_prefix.to_s.length)
       puts "\n#{first_line_prefix}#{color}#{display_number}: #{name_lines.first}#{COLOR_RESET}\n"
       name_lines[1..-1].each do | line |
-        puts "#{color}#{number_spaces} #{line.lstrip}#{COLOR_RESET}"
+        puts "#{color}#{number_spaces}  #{line.lstrip}#{COLOR_RESET}"
       end
     end
   end
@@ -598,10 +598,10 @@ class Rerunner
 
             new_failure.display_number  = display_counter
             new_run_log.failures << new_failure
-            display_failure(new_failure)
+            FailurePrinter.print(new_failure, new_failure.display_number)
           end
         else
-          puts fixed_failure_message(failure)
+          fixed_failure_message(failure)
         end
       else
         new_run_log.failures << failure
