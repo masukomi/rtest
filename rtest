@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
 # An RSpec wrapper that cuts down on the clutter
 # and makes it easier to re-run failing tests.
@@ -20,116 +21,103 @@ require 'io/wait'
 require 'pty'
 require 'stringio'
 
+# require all the rtest classes and modules
+# Dir[File.join(__dir__, 'lib', 'rtest', '*.rb')].each { |file| require file }
+libs = File.join(__dir__, 'lib', 'rtest', '*.rb')
+Dir[libs].sort.each { |file| require file }
 
-USAGE=<<~EOL
-rtest is a convenience tool to make life easier when dealing with RSpec.
+USAGE = <<~EOL
+    rtest is a convenience tool to make life easier when dealing with RSpec.
 
-Output is limited to actionable details about failing tests and
-just enough to get you to the right place to fix them.
+    Output is limited to actionable details about failing tests and
+    just enough to get you to the right place to fix them.
 
-rtest also has a number of options for making it trivial to rerun
-failing tests without needing to specify paths and line numbers.
+    rtest also has a number of options for making it trivial to rerun
+    failing tests without needing to specify paths and line numbers.
 
-Version: VERSION_NUMBER_HERE
+    Version: VERSION_NUMBER_HERE
 
-USAGE:
+    USAGE:
 
-rtest [-h | --help]
-  display these usage instructions
+    rtest [-h | --help]
+      display these usage instructions
 
-rtest
-  shows you numbered list of last test failures (if any)
+    rtest
+      shows you numbered list of last test failures (if any)
 
-rtest all
-  run _all_ rspect tests
+    rtest all
+      run _all_ rspect tests
 
-rtest last_file
-  finds the last file that had a problem
-  and runs all the tests in it.
+    rtest last_file
+      finds the last file that had a problem
+      and runs all the tests in it.
 
-rtest <n>
-  re-run a specific failure from the last test
-  as identified by its number
+    rtest <n>
+      re-run a specific failure from the last test
+      as identified by its number
 
-rtest <n> +/-<x>
-  re-run a specific failure from the last test
-  as identified by its number
-  BUT offset the line number of the test +/- x
-  (useful if you've added or removed lines above it)
+    rtest <n> +/-<x>
+      re-run a specific failure from the last test
+      as identified by its number
+      BUT offset the line number of the test +/- x
+      (useful if you've added or removed lines above it)
 
-  Ex. rtest 5 +2
-  runs example number 5 but specifes a line number 2 greater
-  than the initial failure reported.
+      Ex. rtest 5 +2
+      runs example number 5 but specifes a line number 2 greater
+      than the initial failure reported.
 
-rtest <path_to/file_spec.rb>
-  run a specific spec and captures failures (if any)
-  you can run it with the optional line number syntax too
-  E.g. rtest path_to/file_spec.rb
-    or rtest path_to/file_spec.rb:32
+    rtest <path_to/file_spec.rb>
+      run a specific spec and captures failures (if any)
+      you can run it with the optional line number syntax too
+      E.g. rtest path_to/file_spec.rb
+        or rtest path_to/file_spec.rb:32
 
-rtest kill <number>
-  removes the test with the specified number from the
-  list of past failures
+    rtest kill <number>
+      removes the test with the specified number from the
+      list of past failures
 
-rtest kill <number>-<number>
-  removes the tests with numbers within the specified
-  range of past failure numbers (inclusive).
+    rtest kill <number>-<number>
+      removes the tests with numbers within the specified
+      range of past failure numbers (inclusive).
 
-rtest rerun [<n>|<range>]
-  by itself this runs all the past failures
+    rtest rerun [<n>|<range>]
+      by itself this runs all the past failures
 
-  if you pass in a number, or a range:
-  E.g. "1" or "3-5" it will rerun the specified
-  tests. This behavior is the same as
-  calling rtest with just the numbers.
+      if you pass in a number, or a range:
+      E.g. "1" or "3-5" it will rerun the specified
+      tests. This behavior is the same as
+      calling rtest with just the numbers.
 
-rtest file <number>
-  outputs the file path from the test with that number
-  Ex.
-  path/to/failing_spec
+    rtest file <number>
+      outputs the rspec file path from the test with that number
+      Ex.
+      path/to/failing_spec
 
-rtest [files | --files]
-  outputs a list of all the files+line numbers of failing tests
-  Ex:
-  path/to/failing_spec:43
-  path/to/failing_spec:68
-  path/to/other_spec:44
+    rtest [files | --files]
+      outputs a list of all the files+line numbers of failing tests
+      Ex:
+      path/to/failing_spec:43
+      path/to/failing_spec:68
+      path/to/other_spec:44
 
-rtest [-s | --shortened]
-  Truncates file paths to fit the screen width if possible.
-  Guaranteed to always leave the basename intact.
+    rtest [-s | --shortened]
+      Can be combined with out options.
+      Truncates file paths to fit the screen width if possible.
+      Guaranteed to always leave the basename intact.
 
-rtest [--rspec=NUMBER]
-  outputs the rspec command required to rerun the
-  specified failure in rspec.
+    rtest [--rspec=NUMBER]
+      outputs the rspec command required to rerun the
+      specified failure in rspec.
 
-  In fish shell, for example, you could say
-    eval (rtest --rspec=4)
-  to run failure #4 in rspec directly.
+      In fish shell, for example, you could say
+        eval (rtest --rspec=4)
+      to run failure #4 in rspec directly.
 
-VERBOSE MODE
+    VERBOSE MODE
 
-rtest [-v|--verbose] <any prior command>
-  instead of "marching ants" verbose mode will print out the names
-  of classes under test as their respective tests are being run.
-
-RTEST DEVELOPERS
-
-rtest [-t<TEST_FILE_PATH>|--test=<TEST_FILE_PATH>]
-  this will specify a test file that will be used for input
-  instead of running rspec.
-
-  It is expected that it will be paired with a file of the same
-  name but with the _expected_output suffix. For example:
-
-  test_0.txt should have a corresponding test_0_expected_output.txt
-
-  Note that *_expected_output.txt files _should not_ contain the
-  "Running message|path/to/spec" line
-  or the "...." line.
-
-rtest [-d|--debug]
-  outputs information about processed data
+    rtest [-v|--verbose] <any prior command>
+      instead of "marching ants" verbose mode will print out the names
+      of classes under test as their respective tests are being run.
 
 EOL
 USAGE.freeze
@@ -138,920 +126,120 @@ USAGE.freeze
 # bundle exec rspec foo_spec.rb | sd "\r\n" "\n" > path/to/test_data/test_N.txt
 # rtest foo_spec.rb | ansifilter | sed -e "s/^Running .*//" | sd "^\.+\n" "" > path/to/test_data/test_N_expected_output.txt
 
-
-# SET UP THE COLORS
-BACKTRACE_COLOR="\e[38;2;127;128;128m"
-COLOR_RESET="\e[0m"
-FAILURE_NOTE_LINE_COLOR=""
-DETAIL_LINE_COLOR="\e[38;2;255;140;0m"
-ERROR_HERE_LINE_COLOR="\e[1;38;5;7m" # "\e[100,37m"
-ERROR_LINE_COLOR="\e[38;5;196m"
-EXPECTED_LINE_COLOR="\e[32m"
-FILE_HIGHLIGHT_COLOR="\e[38;5;7m"
-GOT_LINE_COLOR="\e[38;2;255;110;103m" #"\e[91m"
-LINE_NUMBER_COLOR="\e[38;5;214m" # was 100;33
-SUCCESS_COLOR="\e[38;2;7;198;25m"
-
-RTEST_DIR=__dir__
-
-
-# The regex to match ANSI codes
-# from https://github.com/piotrmurach/strings-ansi
-ANSI_MATCHER = %r{
-  (?>\033(
-    \[[\[?>!]?\d*(;\d+)*[ ]?[a-zA-Z~@$^\]_\{\\] # graphics
-    |
-    \#?\d # cursor modes
-    |
-    [)(%+\-*/. ](\d|[a-zA-Z@=%]|) # character sets
-    |
-    O[p-xA-Z] # special keys
-    |
-    [a-zA-Z=><~\}|] # cursor movement
-    |
-    \]8;[^;]*;.*?(\033\\|\07) # hyperlink
-  ))
-}x.freeze
-
-NO_FAILURES_TEXT="\n✅ No failures."
-NO_TESTS_RUN_TEXT="\n -----------------------------------------------\n⚠️   NOTE: This is only a replay of past output."
-
-PAST_RUN_FILENAME=".rtest.json"
-
 @options = {
-  :shortened_paths => false,
-  :verbose => false,
-  :debug => false,
-  :auto_verbose_seconds => 0,
-  :rspec => false
+  shortened_paths: false,
+  verbose: false,
+  debug: false,
+  auto_verbose_seconds: 0,
+  rspec: false
 }
 
-
 options_parser = OptionParser.new do |parser|
-  parser.banner = "Usage: example.rb [options]"
+  parser.banner = 'Usage: example.rb [options]'
 
-  parser.on("-v", "--verbose", "Run verbosely") do |v|
+  parser.on('-v', '--verbose', 'Run verbosely') do |v|
     @options[:verbose] = v
   end
 
-  parser.on("-s", "--shortened", "Truncate paths to fit screen width") do
+  parser.on('-s', '--shortened', 'Truncate paths to fit screen width') do
     @options[:shortened_paths] = true
   end
 
-  parser.on("-tTEST_FILE", "--test=TEST_FILE", "path to test file") do |tf|
+  parser.on('-tTEST_FILE', '--test=TEST_FILE', 'path to test file') do |tf|
     @options[:test_file] = tf
-    @options[:expected_output_file] = tf.sub(/\.txt$/, "_expected_output.txt")
+    @options[:expected_output_file] = tf.sub(/\.txt$/, '_expected_output.txt')
   end
 
-  parser.on("-aSECONDS", "--auto-verbose=SECONDS", "Switch to verbose mode if run takes more than SECONDS") do | s |
+  parser.on('-aSECONDS', '--auto-verbose=SECONDS', 'Switch to verbose mode if run takes more than SECONDS') do |s|
     @options[:auto_verbose_seconds] = s.to_i
   end
 
-  parser.on("--rspec=NUMBER", "outputs the command to run the specified test in rspec") do |number|
+  parser.on('--rspec=NUMBER', 'outputs the command to run the specified test in rspec') do |number|
     @options[:rspec] = number.to_i
   end
   # 🤫 ssssh secret. Just for us rtest devs.
-  parser.on("--fspec=NUMBER", "outputs the command to run the specified test in rspec with our custom formatter") do |number|
+  parser.on('--fspec=NUMBER',
+            'outputs the command to run the specified test in rspec with our custom formatter') do |number|
     @options[:rspec] = number.to_i
     @options[:fspec] = number.to_i
   end
 
-  parser.on("-d", "--debug", "Debug mode") do
+  parser.on('-d', '--debug', 'Debug mode') do
     @options[:debug] = true
   end
 
-  parser.on("--files", "alternate way to specify listing files") do
+  parser.on('--files', 'alternate way to specify listing files') do
     @options[:files] = true
   end
 
-  parser.on("-h", "--help") do
+  parser.on('-h', '--help') do
     puts USAGE
     exit 0
   end
-
 end
 
-numeric_options = ARGV.select{|o| /^-?\d+$/.match(o)}
+numeric_options = ARGV.select { |o| /^-?\d+$/.match(o) }
 begin
-  options_parser.parse(ARGV.reject{|o| /^-?\d+$/.match(o)})
+  options_parser.parse(ARGV.reject { |o| /^-?\d+$/.match(o) })
 rescue OptionParser::MissingArgument => e
-  puts "That option requires an argument: \n\t#{e.message.sub("missing argument: ", '')}\n\n"
-  puts "------------------------------------------"
+  puts "That option requires an argument: \n\t#{e.message.sub('missing argument: ', '')}\n\n"
+  puts '------------------------------------------'
   puts USAGE
   exit 75 # EX_TEMPFAIL (user input)
 rescue OptionParser::InvalidOption => e
-  puts "That is not a supported argument: \n\t#{e.message.sub("invalid option: ", '')}\n\n"
-  puts "------------------------------------------"
+  puts "That is not a supported argument: \n\t#{e.message.sub('invalid option: ', '')}\n\n"
+  puts '------------------------------------------'
   puts USAGE
   exit 75 # EX_TEMPFAIL (user input)
-
 end
-REMAINING_ARGS = ARGV.reject{|o| /^-\w+\S*|^--[-\w]+(?:=\S+)$/.match(o)} + numeric_options
-OPTIONS=@options
-
-
+REMAINING_ARGS = ARGV.reject { |o| /^-\w+\S*|^--[-\w]+(?:=\S+)$/.match(o) } + numeric_options
+OPTIONS = @options
 
 VERBOSE = OPTIONS[:verbose]
-if OPTIONS[:auto_verbose_seconds] > 0
-  AUTO_VERBOSE = OPTIONS[:auto_verbose_seconds]
-else
-  # "".to_i == 0
-  AUTO_VERBOSE = ENV['RTEST_AUTO_VERBOSE'].to_i
-end
-TEST_MODE = OPTIONS.has_key? :test_file
+AUTO_VERBOSE = if (OPTIONS[:auto_verbose_seconds]).positive?
+                 OPTIONS[:auto_verbose_seconds]
+               else
+                 # "".to_i == 0
+                 ENV['RTEST_AUTO_VERBOSE'].to_i
+               end
+TEST_MODE = OPTIONS.key? :test_file
 VERBOSE_TEST = TEST_MODE && VERBOSE
-if VERBOSE_TEST
-  puts "Running in Verbose Test mode."
-end
+puts 'Running in Verbose Test mode.' if VERBOSE_TEST
 DEBUG = OPTIONS[:debug]
 
-SCREEN_WIDTH= (ENV['COLUMNS'] || `tput cols`.chomp || 80).to_i
+SCREEN_WIDTH = (ENV['COLUMNS'] || `tput cols`.chomp || 80).to_i
 
-INPUT = REMAINING_ARGS.size > 0 ? REMAINING_ARGS.shift : nil
+INPUT = REMAINING_ARGS.size.positive? ? REMAINING_ARGS.shift : nil
 
-START=Time.now.to_i
+START = Time.now.to_i
 
-#-----------------------
-module PrintHelpers
-
-  def print_wrapped_test_name(color, display_number, test_name, first_line_prefix = "")
-    name_lines = truncate_long_line(test_name)
-    if name_lines.size == 1
-      puts "\n#{first_line_prefix}#{color}#{display_number}: #{name_lines.first}#{COLOR_RESET}\n"
-    else
-      number_spaces=" " * (display_number.to_s.length + 1 + first_line_prefix.to_s.length)
-      puts "\n#{first_line_prefix}#{color}#{display_number}: #{name_lines.first}#{COLOR_RESET}\n"
-      name_lines[1..-1].each do | line |
-        puts "#{color}#{number_spaces}  #{line.lstrip}#{COLOR_RESET}"
-      end
-    end
-  end
-  def truncate_long_line(line, max=SCREEN_WIDTH)
-    new_lines = []
-    spaces=(0 ... line.length).find_all { |i| line[i,1].match(/\s/) }
-    splits = spaces.select{ |x| x <= max }
-    # split on the first space < 90% of the length
-    split_on = splits.select{|x| x < (max * 0.9) }.last
-    return [line] if split_on.nil?
-
-    new_lines << line[0..split_on] + COLOR_RESET
-    remainder = line[split_on..-1]
-    if remainder.size > max
-      new_lines += truncate_long_line(remainder, max)
-    elsif ! unescape(remainder).strip.empty?
-      new_lines << remainder
-    end
-    new_lines
-  end
-
-  def truncate_long_lines(lines, max=SCREEN_WIDTH)
-    new_lines = []
-    lines.each do | line|
-      if line.length <= SCREEN_WIDTH
-        new_lines << line
-      else
-        new_lines += truncate_long_line(line)
-      end
-    end
-    new_lines
-  end
-end
-class Failure
-  UNPERSISTABLE_ATTRS = Set.new( %i[display_number killable offset persisted] ).freeze
-
-  attr_accessor :backtrace,
-                :description,
-                :error_file_path,
-                :error_line_number,
-                :error_method,
-                :expected,
-                :failure_notes,
-                :got,
-                :rspec_arg,
-                :run_time,
-                :spec_file_path,
-                :spec_line_number,
-                :spec_location,
-                :test_name,
-
-                # meta
-                :display_number,
-
-                # unpersistable
-                :display_number,
-                :killable,
-                :offset,
-                :persisted
-
-
-  # attr_accessor :details,
-  #               :diff,
-  #               :display_number,
-  #               :expected,
-  #               :file,
-  #               :file_full_path,
-  #               :got,
-  #               :killable,
-  #               :line_number,
-  #               :offset,
-  #               :message,
-  #               :persisted,
-  #               :spec_file,
-  #               :spec_file_path,
-  #               :spec_line_number
-
-  def initialize()
-    self.killable = false
-    self.offset = 0
-  end
-
-  def empty?
-    persistable_attr_symbols
-      .map{ |x| self.send(x)}
-      .reject{ |x| x.nil? || x == ''}
-      .empty?
-  end
-
-  def killable?
-    self.killable
-  end
-
-  def persisted?
-    self.persisted
-  end
-
-  def rerunable?
-    ! self.rspec_arg.blank?
-  end
-
-  def has_notes?
-    ! self.failure_notes.empty?
-  end
-
-  def spec_arg_line_number
-    self.spec_line_number.nil? ? "" : ":" + (self.spec_line_number + self.offset).to_s
-  end
-
-  def to_hash
-    hash = {}
-    persistable_attr_symbols.each do | method |
-      hash[method] = self.send(method)
-    end
-    hash
-  end
-
-  def self.from_json(json, display_number = nil)
-    new_failure = Failure.new()
-    json.keys.each do | key |
-      new_failure.send("#{key}=".to_sym, json[key])
-    end
-    new_failure.display_number = display_number if display_number
-    new_failure.persisted = true
-    new_failure
-  end
-
-  private
-  def persistable_attr_symbols
-    # instance_variables returns something like
-    # [:@foo, :@bar, :@baz]
-    # and self.send(:@foo) is an error
-    self.instance_variables
-      .map{ |x| x.to_s.sub("@", "").to_sym }
-      .reject{ |x| UNPERSISTABLE_ATTRS.include? x }
-  end
-end
-
-class Killer
-
-  # returns a new array of failures
-  # without the killable ones.
-  def self.cull_failures(failures)
-    failures.reject{ |f| f.killable }
-  end
-
-  def self.clean_run_data(run_data)
-    run_data.failures.reject!{ |failure| failure.killable }
-    run_data
-  end
-
-  # the numbers passed in are the user-facing numbers
-  def self.mark_for_death(run_log, numbers)
-    # any_bad_numbers = false
-    Array(numbers).each do |n|
-      failure = run_log.get_failure_by_number(n)
-      if failure
-        failure.killable = true
-      else
-        STDERR.puts("#{ERROR_LINE_COLOR}Can't find #{n} for killing.#{COLOR_RESET}")
-        # any_bad_numbers = true
-      end
-    end
-  end
-end
-
-class RunLog
-  attr_accessor :failures
-
-  def self.from_json(json)
-    rl = RunLog.new()
-    failure_objects = []
-
-    json["failures"].each_with_index do |json_f, index|
-      failure_objects << Failure.from_json(json_f, (index + 1))
-    end
-    rl.failures = failure_objects
-
-    rl
-  end
-  def self.from_rspec_json(json_string)
-    rl = RunLog.new()
-    if ! ( json_string.to_s == "" || /^\s+$/.match(json_string.to_s))
-      json = JSON.parse(json_string)
-      json.each do |failure_hash|
-        rl.failures << Failure.from_json(failure_hash)
-      end
-    end
-    rl
-  end
-
-  # It is expected that the file won't exist
-  # In that scenario we just create a new RunLog
-  # File
-  def self.from_file(file_path)
-    begin
-      self.from_json(JSON.parse(File.read(file_path)))
-    rescue StandardError => e
-      STDERR.puts("problem parsing #{filename}: #{e.message}")
-      #something usable for new run at least...
-      RunLog.new()
-    end
-  end
-
-  def initialize()
-    self.failures = []
-  end
-
-  def has_failures?
-    self.failure_count > 0
-  end
-
-  def failure_count
-    self.failures.size
-  end
-
-  def failure_numbers
-    failures.map{ |f| f.display_number }
-  end
-
-  def get_failure_by_number(number)
-    failures.each do | f |
-      return f if f.display_number == number
-    end
-    nil
-  end
-
-  # at the moment "failures" are the only thing
-  # stored about a run.
-  # Over time I expect more metadata will be added
-  def to_json()
-    JSON.pretty_generate(
-      {"failures" => failures.map{ |f| f.killable? ? nil : f.to_hash }.flatten }
-    )
-  end
-
-  def rerun_all
-    Rerunner.new(self).rerun_all
-  end
-
-  def rerun_numbers(numbers)
-    Rerunner.new(self).rerun(numbers)
-  end
-
-  def last_file
-    self.failures
-      .map{|f| f.spec_file_path || f.file }
-      .select{|f| f.end_with?("_spec.rb")}
-      .last
-  end
-
-  def failures_in_file(spec_file)
-    self.failures.select{ |f| f.spec_file_path == spec_file }
-  end
-
-  def new_failures
-    self.failures.select{ |f| ! f.persisted? }
-  end
-
-end
-
-# Rerunner manages reruns of past failures
-# because individual failures are rerun
-# indpependently there are problems that
-# need to be addressed
-#
-# 1. rspec is always going to start the numbering at 1
-#    (for every run) so we end up with 1, 1, 1, 1...
-# 2. a failure might become fixed and need to be
-#    removed from the list
-# 3. a single failure might become multiple failures
-#    which then need to be recorded.
-#
-# In order to accomplish 2 we need to create
-# a new "past run"  object that we can populate with
-class Rerunner
-  include PrintHelpers
-  attr_accessor :run_log
-
-  def initialize(run_log)
-    self.run_log = run_log
-  end
-  # rerun all past failures
-  def rerun_all
-    rerun(run_log.failure_numbers)
-  end
-
-
-  # rerun one past failure
-  def rerun(numbers)
-    numbers = Array(numbers)
-    # iterate over each failure,
-    # pass it to be rerun
-    # collect the resulting failure(s)
-    # and replace the existing one with them
-    # or kill it if there were none.
-    new_run_log = RunLog.new()
-
-    # display counter is -1 because
-    # i still haven't refactored
-    # away from old 0 based index iteration yet
-    # TODO: redo how non-rerun iteration & display to be 1 based
-    display_counter = 0
-    run_log.failures.each_with_index do | failure, index |
-      display_counter += 1
-      if numbers.include? (index + 1)
-
-        rerun_log = rerun_failure(failure)
-        if rerun_log.has_failures?
-          display_counter -= 1 # because we're about to increment it n times
-          rerun_log.failures.each do | new_failure |
-            display_counter += 1
-
-            new_failure.display_number  = display_counter
-            new_run_log.failures << new_failure
-            FailurePrinter.print(new_failure, new_failure.display_number)
-          end
-        else
-          fixed_failure_message(failure)
-        end
-      else
-        new_run_log.failures << failure
-      end
-    end
-
-    new_run_log
-  end
-
-  def rerun_last_file
-    last_file = self.run_log.last_file
-    failure_numbers = self.run_log.failures_in_file(last_file).map{ |f| f.display_number }
-    rerun(failure_numbers)
-  end
-
-  private
-
-  def fixed_failure_message(failure)
-    print_wrapped_test_name(SUCCESS_COLOR, "FIXED", failure.test_name, "✅ ")
-  end
-
-
-end
-
-class FailurePrinter
-  include PrintHelpers
-  def self.print(failure, potential_display_number=-1)
-    f = FailurePrinter.new(failure, potential_display_number)
-    f.begin
-  end
-
-  attr_accessor :failure, :potential_display_number
-
-  def initialize(failure, potential_display_number = -1)
-    self.failure = failure
-    self.potential_display_number = potential_display_number
-  end
-
-  def begin
-    print_description(failure, potential_display_number + 1)
-
-    puts printable_failure_notes(failure) if failure.has_notes?
-    puts ""
-
-    puts printable_file_and_line_num(failure)
-
-    puts "\t#{EXPECTED_LINE_COLOR}expected: #{failure.expected}#{COLOR_RESET}" if failure.expected
-    puts "\t#{GOT_LINE_COLOR     }got     : #{failure.got}#{COLOR_RESET}" if failure.got
-
-    puts printable_backtrace(failure.backtrace)
-    # puts "\n\t\tDiff:\n#{failure.diff.join("\n\t\t")}" if failure.diff
-
-  end
-
-  private
-
-  def print_description(failure, potential_display_number)
-    display_number = failure.display_number.nil? ? potential_display_number \
-                     : failure.display_number
-
-    print_wrapped_test_name(ERROR_LINE_COLOR, display_number, failure.test_name)
-
-    if failure.description.size > 1
-      # well crap. We're dealing with something like this
-      # [
-      #   "expect do",
-      #   "object.upload_stream(tempfile: true) do |write_stream|",
-      #   "write_stream << seventeen_mb",
-      #   "end",
-      #   "end.to raise_error(",
-      #   "S3::MultipartUploadError,",
-      #   "'failed to abort multipart upload: network-error'",
-      #   ")",
-      # ]
-
-      failure.description.each do | line |
-        puts "\t#{DETAIL_LINE_COLOR}#{line}#{COLOR_RESET}"
-      end
-    end
-  end
-
-  def printable_failure_notes(failure)
-    displayable_list = VERBOSE ? failure.failure_notes : failure.failure_notes[0..9]
-    displayable_list = truncate_long_lines(displayable_list)
-    path_lines_truncator("\t#{FAILURE_NOTE_LINE_COLOR}",
-                        displayable_list.map{ |x| "\t▷ #{x}" },
-                        COLOR_RESET,
-                        {force: true})
-    # "\n\t#{FAILURE_NOTE_LINE_COLOR}" + displayable_list.join("\n\t") + COLOR_RESET
-  end
-
-  def printable_file_and_line_num(failure)
-    lines = []
-
-    if failure.spec_file_path
-      # if so, we're going to display the spec error & where it blew up in the file
-      lines << path_line_truncator(
-        "\tFAILED SPEC : #{ERROR_HERE_LINE_COLOR}",
-        failure.spec_file_path,
-        "#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure.spec_line_number}#{COLOR_RESET}"
-      )
-
-    end
-    if failure.error_file_path
-      lines << path_line_truncator("\tERROR HERE  : #{ERROR_HERE_LINE_COLOR}",
-                            failure.error_file_path,
-                            "#{COLOR_RESET}:#{LINE_NUMBER_COLOR}#{failure.error_line_number}#{COLOR_RESET}"
-                                    )
-      lines << "\t             in -> #{failure.error_method}" if failure.error_method
-
-    elsif failure.error_method
-      lines << "\tERROR METHOD: #{ERROR_HERE_LINE_COLOR}#{failure.error_method}#{COLOR_RESET}"
-    end
-    lines.join("\n")
-  end
-
-  def printable_backtrace(backtrace)
-    displayable_list = VERBOSE ? backtrace : backtrace[0..9]
-
-    if displayable_list.size > 0
-      "\n" + path_lines_truncator("\t#{BACKTRACE_COLOR}",
-                        displayable_list,
-                        COLOR_RESET,
-                        {force: true})
-    else
-      "\n\t#{BACKTRACE_COLOR}Backtrace Unavailable#{COLOR_RESET}"
-    end
-    # "\t#{BACKTRACE_COLOR}" + displayable_list.join("\n\t") + COLOR_RESET
-  end
-
-
-  def path_lines_truncator(preface, paths, suffix, line_options={})
-    paths.map{ |maybe_path|
-      if line_is_path?(unescape(maybe_path))
-        path_line_truncator(preface, maybe_path, suffix, line_options)
-      else
-        maybe_path
-      end
-    }.join("\n")
-  end
-
-  # a path line is a line that ends in a file path
-  # it may or may not, have a preface.
-  # to force truncation even when not in shortened_paths mode
-  # set line_options[:force] = true
-  def path_line_truncator(preface, path, suffix, line_options={})
-    #TODO calculate how long a tab stop is
-    #for now i'm assuming the default of 8 characters
-    line_options[:soft_max] = SCREEN_WIDTH unless line_options[:soft_max]
-
-    untruncated_line = preface + path + suffix
-    if ! OPTIONS[:shortened_paths] && ! line_options[:force]
-      return untruncated_line
-    else
-      tab_length = 8
-      preface ||= ""
-      unescaped_preface = unescape(preface)
-      unescaped_suffix = unescape(suffix)
-      non_file_length =  unescaped_preface.length \
-                         + (unescaped_preface.gsub(/[^\t]/, '').length \
-                            * (tab_length - 1)) \
-                         + unescaped_suffix.length
-
-      basename = File.basename(path)
-      elipsis_basename = "…#{File::SEPARATOR}#{basename}"
-
-      if basename.length >= line_options[:soft_max]
-        return elipsis_basename
-      else
-        available_chars = line_options[:soft_max] \
-                          - elipsis_basename.length \
-                          - non_file_length
-        path_chunks = path.split(File::SEPARATOR)
-        returnable = []
-
-        # efficient? no, not really, but easy to think about? yes
-        # and yeah, there's got to be a better way to do this.
-        # TODO: refactor this to be less... kludgey
-        (0..path_chunks.length).each do | index |
-          if index != path_chunks.length
-            chunk = path_chunks[index]
-            returnable << chunk
-            if returnable.join(File::SEPARATOR).length > available_chars
-              return preface +
-                    (returnable[0..-2] + [elipsis_basename]).join(File::SEPARATOR) +
-                    suffix
-            end
-          else
-            return untruncated_line
-          end
-        end
-      end
-    end
-  end
-
-
-  # only used for truncation decision
-  # it's unlikely any single file name in the current dir
-  # will be long enough to need truncation ;)
-  def line_is_path?(line)
-    line.split(File::SEPARATOR).size > 1 \
-      && /^\s*\.?\//.match(line)
-  end
-
-
-end # END  FailurePrinter
-
-
-#------------------------
-
-
-################
-
-def process_running?(pid)
-  Process.getpgid(pid)
-  true # or boom
-rescue
-  false
-end
-
-def buffer_last_line(buffer)
-  last_line = buffer.string.split("\n").last
-  last_line
-end
-
-def definite_debugger_line(line)
-  return false unless line
-  unescaped_line = unescape(line)
-  return false if unescaped_line.strip.length == 0
-  # puts "line.inspect: '#{line.inspect}'"
-  !! unescaped_line.match(/^\(byebug\) $|^\[\d+\] pry\(.*?\)> $/)
-end
-def potential_debugger_pause(line)
-  !! unescape(line).match(/^\s*\d+:\s+/)
-end
-
-def wait_for_read(reader, pid, last_line, counter = 0)
-  # counter is a count of times through this with
-  # potential debugger pause lines
-  running = process_running?(pid)
-  while running && ! reader.ready?
-    putc "." unless VERBOSE #ironically
-    return :debugger if definite_debugger_line(last_line)
-    if last_line && potential_debugger_pause(last_line)
-      counter += 1
-      return :debugger if counter > 4
-    end
-    sleep 0.2
-  end
-  if running
-    :running
+def validate_failure_numbers(numbers, valid_failure_numbers)
+  numbers = Array(numbers)
+  if (numbers & valid_failure_numbers).size == numbers.size
+    return true
   else
-    :ready
+    invalid_failure_number_error(valid_failure_numbers)
   end
 end
-
-def read_into_buffer(reader, buffer)
-  temp_buffer = StringIO.new("")
-  loop do
-    break unless reader.ready?
-    char = reader.read(1)
-    break if char.nil?
-    temp_buffer.putc(char)
-  end
-
-  temp_string = temp_buffer.string
-  if temp_string.length > 0
-    buffer << temp_string
-  end
-end
-
-################
-
-def unescape(text)
-  text.gsub(ANSI_MATCHER, '')
-end
-
-def invalid_failure_number_error(number, past_run_data)
-  puts "Unable to find a failure with the number #{number}"
-  puts "Valid failure numbers are: #{past_run_data.failures.map(&:display_number).join(", ")}"
-  exit 75 # EX_TEMPFAIL (user input)
-end
-
-
-def display_failures(failures)
-  failures.each_with_index do | failure, idx |
-    FailurePrinter.print(failure, idx)
-  end
-end
-
-# returns a RunLog
-def process_rspec_output(output)
-  before_rtest_json = true
-  json_lines = []
-  output.split(/\r\n|\n/).each do |line|
-    if before_rtest_json && line == "BEGIN_RTEST_JSON"
-      before_rtest_json = false
-      next
-    elsif before_rtest_json
-      next
+def invalid_failure_number_error(valid_failure_numbers)
+  if valid_failure_numbers.size.positive?
+    puts "One or more of the numbers suplied are invalid"
+    if valid_failure_numbers.size == valid_failure_numbers.last.to_i
+      puts "Please specify a number between #{valid_failure_numbers.first} & #{valid_failure_numbers.last}"
     else
-      json_lines << line
+      puts "Please specify one of the following numbers #{valid_failure_numbers.join(", ")}"
     end
-  end
-  RunLog.from_rspec_json(json_lines.join("\n"))
-end
-
-
-def interactive_run_handler(run_line, output_buffer)
-  PTY.spawn(run_line) do |reader, writer, pid|
-    if process_running?(pid)
-      while process_running?(pid)
-        wait_response = wait_for_read(reader, pid, buffer_last_line(output_buffer))
-        if wait_response != :running # ready or debugger
-          read_into_buffer(reader, output_buffer)
-          # break unless process_running?(pid)
-          if ! process_running?(pid)
-            break
-          end
-          if wait_response == :debugger || reader.expect(/^\(byebug\) /, 0.2) #wait 0.2 sec for a match
-            puts "\n" + output_buffer.string.split("\n").reverse[0..10].reverse.join("\n")
-            user_input = STDIN.gets.chomp
-            writer.puts user_input
-            sleep 0.2 # give it a moment to exit if it wants to
-          else
-          #   # did not see ">" within 2 seconds
-          #   puts "foo.fail"
-          end
-          # break unless process_running?(pid)
-        end
-
-        read_into_buffer(reader, output_buffer)
-      end
-    else
-      read_into_buffer(reader, output_buffer)
-    end
-  end
-  output_buffer
-end
-
-# returns a RunLog
-def rerun_failure(failure)
-  #TODO warn if not rerunable
-  run_this(failure.rspec_arg, false)
-end
-
-# when the run had issues beyond just test failures
-# try and extract goodness from it.
-def extract_meaningful_failure(output)
-  lines = output.split(/\r\n|\n/)
-
-  return_lines = []
-  lines.each do |line|
-    return_lines << line
-    break if /^# .*:in/.match(line)
-  end
-  return_lines
-end
-
-def path_to_formatter
-  RTEST_DIR + File::SEPARATOR + "rtest_formatter.rb"
-end
-
-def rspec_command(spec)
-  "bundle exec rspec #{spec} --require #{path_to_formatter()} --format RtestFormatter 2>&1"
-end
-# returns a RunLog
-def run_this(spec, update_file, retries = 0)
-  # in a successful run there's nothing in STDERR (2)
-  # it's all STDOUT (1)
-  run_line = rspec_command(spec)
-  # STDERR.puts("XXX running: #{run_line}")
-  # Redirecting STDERR to STDOUT because rspec is...
-  # They've made "interesting" choices about what goes where
-  output_buffer = interactive_run_handler(run_line, StringIO.new(""))
-
-  # Getting the exit code from PTY.spawn requires calling
-  # Process.wait(pid)
-  # but that just waits until it exits which will block,
-  # so... just gonna have to do without that unless
-  # you, my brilliant reader, know a workaround.
-
-  output = output_buffer.string
-
-  if output.match(/^[A-Z]+[a-z]+\w+Error:/)
-    failure_extract = extract_meaningful_failure(output)
-    puts "\n⚠️ Problems encountered: \n\t#{failure_extract.join("\n\t")}\n..."
-    # for whatever reason rspec sends SOME errors to standard out
-    # not standard error
-    exit 1
-  elsif output.match(/(Run `bundle install`|Bundler::GemNotFound|Bundler could not find compatible versions|bundler: command not found: rspec)/m)
-    if output.match(/could not find compatible versions/m)
-      puts "\nBundler issue you'll have to address..."
-      puts output.split("\n")[0..20].join("\n")+"\n..."
-      exit 1
-    end
-    puts "\nYou need to bundle"
-    puts "I'll do that for you. Gimme a minute..."
-    if retries == 0
-      bundle_output, bundle_standard_error, bundle_status = Open3.capture3( "bundle install")
-      if bundle_status.exitstatus == 0
-        run_this(spec, update_file, 1)
-      else
-        puts bundle_standard_error
-        puts bundle_output
-        puts "\n\n\n"
-        puts "Nope. I failed to bundle for you. Please reference any errors listed above"
-        exit bundle_status.exitstatus
-      end
-    else
-      exit 2
-    end
-  elsif output.match(/Could not locate Gemfile or \.bundle\/ directory/m)
-    puts "\n⚠️ Could not locate Gemfile or .bundle/ directory"
-    exit 3
-  end
-
-  new_run_data = process_rspec_output(output)
-  update_record(new_run_data) if update_file
-  new_run_data
-end
-
-def update_record_and_display(new_run_data)
-  persistable_data = update_record(new_run_data)
-  display_failures(persistable_data.failures)
-  persistable_data
-end
-def update_record_and_display_new(new_run_data)
-  persistable_data = update_record(new_run_data)
-  display_failures(persistable_data.new_failures)
-  persistable_data
-end
-
-def update_record(new_run_data)
-  persistable_data = Killer.clean_run_data(new_run_data)
-  if persistable_data.has_failures?
-    File.write(PAST_RUN_FILENAME, new_run_data.to_json())
   else
-    #NOTE: currently we're storing no metadata about
-    # the run so "failures" are the only thing we're
-    # persisting. If there are no failures let's not
-    # waste time reloading this on the next run.
-    File.unlink(PAST_RUN_FILENAME) if File.exist? PAST_RUN_FILENAME
+    puts "There are no known failures"
   end
-  persistable_data
+    exit 75 # EX_TEMPFAIL (user input)
 end
+
+# returns a Rtest::RunLog
 
 def output_run_results(run_data)
-  if run_data.failures.size > 0
-    display_failures(run_data.failures)
+  if run_data.failures.size.positive?
+    Rtest::FailurePrinter.display_failures(run_data.failures)
   else
     puts NO_FAILURES_TEXT
   end
@@ -1059,35 +247,15 @@ end
 
 def display_run_log(run_log)
   if run_log.has_failures?
-    display_failures(run_log.failures)
+    Rtest::FailurePrinter.display_failures(run_log.failures)
   else
-    puts "No past failure data. Please run a spec through me."
+    puts 'No past failure data. Please run a spec through me.'
   end
 end
 
 def display_files(past_run_data)
-  past_run_data.failures.each do | failure |
-    puts "#{failure.rspec_arg}"
-  end
-end
-
-def with_captured_stdout
-  original_stdout = $stdout  # capture previous value of $stdout
-  $stdout = StringIO.new     # assign a string buffer to $stdout
-  yield                      # perform the body of the user code
-  $stdout.string             # return the contents of the string buffer
-ensure
-  $stdout = original_stdout  # restore $stdout to its previous value
-end
-
-def confirm_test_files_or_die(options)
-  if ! File.exist? options[:test_file]
-    STDERR.puts "Unable to find test file: #{options[:test_file]}"
-    exit 1
-  end
-  if ! File.exist? options[:expected_output_file]
-    STDERR.puts "Unable to find expected test output file: #{options[:expected_output_file]}"
-    exit 1
+  past_run_data.failures.each do |failure|
+    puts failure.rspec_arg.to_s
   end
 end
 
@@ -1102,79 +270,73 @@ end
 # this returns true if there is NO point
 # in loading the existing data file
 def input_denotes_fresh_run?(input)
-  return true if input == "all"
+  return true if input == 'all'
   return true if /.*_spec.rb(?::\d+)?$/.match(input)
+
   false
 end
 
 # -------------------------
 
-past_run_data = RunLog.new()
+past_run_data = Rtest::RunLog.new
 
-if File.exist?(PAST_RUN_FILENAME) && ! TEST_MODE && ! input_denotes_fresh_run?(INPUT)
-  past_run_data = RunLog.from_file(PAST_RUN_FILENAME)
+if File.exist?(PAST_RUN_FILENAME) && !TEST_MODE && !input_denotes_fresh_run?(INPUT)
+  past_run_data = Rtest::RunLog.from_file(PAST_RUN_FILENAME)
 end
 
-
-
-if INPUT.nil? && ! OPTIONS[:rspec]
+if INPUT.nil? && !OPTIONS[:rspec]
   display_run_log(past_run_data)
   puts NO_TESTS_RUN_TEXT
 elsif /.*_spec.rb(:\d+)?$/.match(INPUT) \
-  || INPUT=="all" \
-  || INPUT=="last_file" \
-  || /\S+\/$/.match(INPUT) # ends with a slash, prolly a directory
-  if INPUT != "all" && INPUT != "last_file"
-    if ! File.exist?(INPUT.sub(/:\d+$/, ''))
-      STDERR.puts("Could not find specified file or directory:\n#{INPUT}")
-      STDERR.puts("Please try again with a valid path.")
+  || INPUT == 'all' \
+  || INPUT == 'last_file' \
+  || %r{\S+/$}.match(INPUT) # ends with a slash, prolly a directory
+  if INPUT != 'all' && INPUT != 'last_file'
+    unless File.exist?(INPUT.sub(/:\d+$/, ''))
+      warn("Could not find specified file or directory:\n#{INPUT}")
+      warn('Please try again with a valid path.')
       exit 64 # EX_USAGE
     end
-    if ! OPTIONS[:fspec]
+    if !OPTIONS[:fspec]
       puts "Running specs in #{INPUT}\n"
       # must be a spec file
-      updated_run_data = run_this(INPUT, true)
-      updated_run_data = update_record_and_display(updated_run_data)
+      updated_run_data = Rtest::Runner.run_and_display_this(INPUT, true)
     else
-      puts rspec_command(INPUT)
+      puts Rtest::Runner.fspec_command(INPUT)
       exit 0
     end
-  elsif INPUT == "last_file"
-    if ! past_run_data.has_failures?
-      puts "No file data from last run"
+  elsif INPUT == 'last_file'
+    unless past_run_data.has_failures?
+      puts 'No file data from last run'
       exit 64 # EX_USAGE
     end
     last_file = past_run_data.last_file
     if last_file.nil?
-      STDERR.puts("🤨 Unable to find spec file amongst past failures. ")
+      warn('🤨 Unable to find spec file amongst past failures. ')
       exit 1
     end
     puts "Running #{last_file}...\n"
-    # NOTE: display happens during rerun
-    updated_run_data = Rerunner.new(past_run_data).rerun_last_file
-    update_record(updated_run_data)
+    updated_run_data = Rtest::Rerunner.new(past_run_data).rerun_last_file(persist: true)
     # rerunner will take care of mentioning fixed tests
-  elsif INPUT == "all"
-    if ! OPTIONS[:fspec]
+  elsif INPUT == 'all'
+    if !OPTIONS[:fspec]
       puts "Running ALL specs...\n"
-      updated_run_data = run_this('', true)
-      updated_run_data = update_record_and_display(updated_run_data)
+      updated_run_data = Rtest::Runner.run_and_display_this('', true)
     else
-      puts rspec_command("")
+      puts Rtest::Runner.fspec_command('')
       exit 0
     end
   end
-  # output_run_results(updated_run_data)
   puts NO_FAILURES_TEXT unless updated_run_data.has_failures?
 elsif /^\d+$/.match(INPUT) || OPTIONS[:rspec]
-  failure_number = OPTIONS[:rspec] ? OPTIONS[:rspec] : INPUT.to_i
-  offset = REMAINING_ARGS.size > 0 ? REMAINING_ARGS[0].to_i : 0
+  failure_number = OPTIONS[:rspec] || INPUT.to_i
+  offset = REMAINING_ARGS.size.positive? ? REMAINING_ARGS[0].to_i : 0
   # NOTE: display happens during rerun
-  failure= past_run_data.get_failure_by_number(failure_number)
+  failure = past_run_data.get_failure_by_number(failure_number)
   if !failure.nil?
     failure.offset = offset
     if !OPTIONS[:rspec]
-      updated_run_data = Rerunner.new(past_run_data).rerun(failure_number)
+      Rtest::Rerunner.new(past_run_data).rerun(failure_number, persist: true)
     else
       # we can't run it ourselves or we'll hang on byebug or
       # binding.pry lines
@@ -1182,39 +344,45 @@ elsif /^\d+$/.match(INPUT) || OPTIONS[:rspec]
       # we _could_ do it the way we do the other interactive stuff
       # but the idea here was to make it trivial to rerun something in
       # rspec directly
-      if ! OPTIONS[:fspec]
-        puts "bundle exec rspec #{failure.rspec_arg}"
+      if !OPTIONS[:fspec]
+        puts Rtest::Runner.rspec_command(failure.rspec_arg)
       else
-        puts "bundle exec rspec #{failure.rspec_arg} --require #{path_to_formatter} --format RtestFormatter 2>&1"
+        puts Rtest::Runner.fspec_command(failure.rspec_arg)
       end
       exit 0
     end
-    update_record(updated_run_data)
   else
-    invalid_failure_number_error(failure_number, past_run_data)
+    invalid_failure_number_error(past_run_data.failure_numbers)
   end
   # rerunner will take care of mentioning fixed tests
-elsif INPUT == "rerun"
- if ! past_run_data.has_failures?
-   puts "No past failures found to rerun."
-   exit 0
- end
- if REMAINING_ARGS.size > 0
-   next_arg = REMAINING_ARGS[0]
-   if is_arg_range(next_arg)
-    Rerunner.new(past_run_data).rerun(range_arg_to_array(next_arg))
-   elsif /^\d+$/.match(next_arg) && next_arg.to_i > 0
-     Rerunner.new(past_run_data).rerun([next_arg.to_i])
-   else
-     STDERR.puts("unexpected arguments passed to rerun.")
-     STDERR.puts("Run \"rtest --help\" to see usage instructions")
-     exit 1
-   end
- end
- Rerunner.new(past_run_data).rerun_all
+elsif INPUT == 'rerun'
+  unless past_run_data.has_failures?
+    puts 'No past failures found to rerun.'
+    exit 0
+  end
+  if REMAINING_ARGS.size.positive? && REMAINING_ARGS[0].downcase != "all"
+    next_arg = REMAINING_ARGS[0]
+    if is_arg_range(next_arg)
+      ints = range_arg_to_array(next_arg)
+      puts "Rerunning #{ints.join('..')}"
+      Rtest::Rerunner.new(past_run_data).rerun(ints, persist: true)
+    elsif /^\d+$/.match(next_arg) && next_arg.to_i.positive?
+      failure_number = next_arg.to_i
+      validate_failure_numbers(failure_number, past_run_data.failure_numbers)
+      puts "Rerunning #{next_arg.to_i}"
 
-elsif INPUT == "kill" &&  /^\d+(-\d+)?$/.match(REMAINING_ARGS[0].to_s)
-  if ! is_arg_range(REMAINING_ARGS[0])
+      Rtest::Rerunner.new(past_run_data).rerun(failure_number, persist: true)
+    else
+      warn('unexpected arguments passed to rerun.')
+      warn('Run "rtest --help" to see usage instructions')
+      exit 1
+    end
+  else
+    Rtest::Rerunner.new(past_run_data).rerun_all(persist: true)
+  end
+
+elsif INPUT == 'kill' &&  /^\d+(-\d+)?$/.match(REMAINING_ARGS[0].to_s)
+  if !is_arg_range(REMAINING_ARGS[0])
     indexes = Array(REMAINING_ARGS[0].to_i)
   else
     x, y = range_arg_to_array(REMAINING_ARGS[0])
@@ -1222,22 +390,18 @@ elsif INPUT == "kill" &&  /^\d+(-\d+)?$/.match(REMAINING_ARGS[0].to_s)
     # avoid complications resulting
     # from shortening an array while iterating over it
 
-    if x < y
-      indexes = (x..y).to_a.reverse
-    elsif x == y
-      indexes = [x]
-    else
-      indexes = (x..y).to_a
-    end
+    indexes = if x < y
+                (x..y).to_a.reverse
+              elsif x == y
+                [x]
+              else
+                (x..y).to_a
+              end
   end
+  validate_failure_numbers(indexes, past_run_data.failure_numbers)
 
-  Killer.mark_for_death(past_run_data, indexes)
-  puts "-------------------------------------------------\n"
-  puts "-------------------------------------------------\n"
-  updated_run_data = update_record(past_run_data)
-  display_failures(updated_run_data.failures)
-  puts NO_FAILURES_TEXT unless updated_run_data.has_failures?
-elsif INPUT == "file" &&  /^\d+$/.match(REMAINING_ARGS[0].to_s)
+  Rtest::Killer.kill_and_display(past_run_data, indexes)
+elsif INPUT == 'file' &&  /^\d+$/.match(REMAINING_ARGS[0].to_s)
   number = REMAINING_ARGS[1].to_i
   failure = past_run_data.get_failure_by_number(number)
   if failure
@@ -1246,15 +410,15 @@ elsif INPUT == "file" &&  /^\d+$/.match(REMAINING_ARGS[0].to_s)
     puts "Couldn't find failure numbered: #{number}"
     exit 75 # EX_TEMPFAIL (user input)
   end
-elsif INPUT == "files" || OPTIONS[:files]
+elsif INPUT == 'files' || OPTIONS[:files]
   display_files(past_run_data)
 elsif /\.rb$/.match(INPUT)
-  STDERR.puts "🛑 That's a ruby file, but not an rspec (*_spec.rb) file."
-  matches = `find . -name $(basename #{INPUT.gsub(/\.rb$/, "_spec.rb")})`.strip
-  if matches != ""
-    STDERR.puts("Did you mean:")
+  warn "🛑 That's a ruby file, but not an rspec (*_spec.rb) file."
+  matches = `find . -name $(basename #{INPUT.gsub(/\.rb$/, '_spec.rb')})`.strip
+  if matches != ''
+    warn('Did you mean:')
     matches.split("\n").each do |match|
-      STDERR.puts"\t#{match}"
+      warn "\t#{match}"
     end
   end
 end
