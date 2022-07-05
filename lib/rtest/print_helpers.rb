@@ -7,7 +7,7 @@ module Rtest
       if name_lines.size == 1
         puts "\n#{first_line_prefix}#{color}#{display_number}: #{name_lines.first}#{COLOR_RESET}\n"
       elsif name_lines.size == 0
-        puts "\n#{first_line_prefix}#{color}#{display_number}: NON-TEST ERROR#{COLOR_RESET}\n"
+        puts "\n#{first_line_prefix}#{color}NON-TEST ERROR#{COLOR_RESET}\n"
       else
         number_spaces = ' ' * (display_number.to_s.length + 1 + first_line_prefix.to_s.length)
         puts "\n#{first_line_prefix}#{color}#{display_number}: #{name_lines.first}#{COLOR_RESET}\n"
