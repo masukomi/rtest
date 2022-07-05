@@ -120,7 +120,7 @@ class Failure
     to_json
   end
 
-  private
+  protected
 
   def incorporate_meta_backtrace
     return true if @meta_backtrace.empty?
@@ -233,12 +233,12 @@ class Failure
   end
 
   def add_meta_backtrace_line(unescaped_line)
-    @meta_backtrace << unescaped_line.sub(/^\s+#\s+/, '')
+    @meta_backtrace << unescaped_line.sub(/^\s*#\s+/, '')
   end
 
   # assumes we've been passed a non-null unescaped_line
   def meta_backtrace_line?(unescaped_line)
-    !!%r{^\s+#\s+\.?/}.match(unescaped_line) || line_is_path?(unescaped_line)
+    !!%r{^\s*#\s+\.?/}.match(unescaped_line) || line_is_path?(unescaped_line)
   end
 
   def message_line_components(line)
@@ -334,10 +334,42 @@ class Failure
       self.error_file_path   = m[1]
       self.error_line_number = m[2]
       self.error_method      = m[3]
+      break
     end
   end
 end
 
+class Message < Failure
+
+  def initialize(notification)
+    self.expected         = nil
+    self.got              = nil
+    self.spec_line_number = nil
+    self.rspec_arg        = nil
+    self.run_time         = 0
+    self.spec_file_path   = nil
+    self.spec_location    = nil
+    self.test_name        = nil
+
+    self.failure_notes  = []
+    self.description    = []
+    self.backtrace = []
+    @meta_backtrace = []
+
+    # things we can extract
+    # backtrace
+    # description
+    # failure_notes
+    # error_file_path
+    # error_line_number
+    # error_method
+    # failure_notes
+    message_lines = notification.message.split("\n")
+    simple_message_extraction(message_lines)
+    incorporate_meta_backtrace
+    extract_failure_location(self.backtrace)
+  end
+end
 class RtestFormatter
   # rspec 3.11 docs for making them
   # https://relishapp.com/rspec/rspec-core/v/3-11/docs/formatters/custom-formatters
@@ -352,12 +384,15 @@ class RtestFormatter
 
   RSpec::Core::Formatters.register self,
                                    :example_failed,
-                                   :close
+                                   :close,
+                                   :message
   def initialize(output)
     @output = output
     @failures = []
   end
-
+  def message(notification)
+    @failures << Message.new(notification)
+  end
   # called if the example fails
   # notification: FailedExampleNotification
   # http://www.rubydoc.info/gems/rspec-core/RSpec/Core/Notifications/FailedExampleNotification
