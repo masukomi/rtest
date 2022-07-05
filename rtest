@@ -158,10 +158,9 @@ options_parser = OptionParser.new do |parser|
     @options[:rspec] = number.to_i
   end
   # 🤫 ssssh secret. Just for us rtest devs.
-  parser.on('--fspec=NUMBER',
-            'outputs the command to run the specified test in rspec with our custom formatter') do |number|
-    @options[:rspec] = number.to_i
-    @options[:fspec] = number.to_i
+  parser.on('--fspec',
+            'outputs the command to run the specified test in rspec with our custom formatter') do
+    @options[:fspec] = true
   end
 
   parser.on('-d', '--debug', 'Debug mode') do
@@ -192,8 +191,9 @@ rescue OptionParser::InvalidOption => e
   puts USAGE
   exit 75 # EX_TEMPFAIL (user input)
 end
-REMAINING_ARGS = ARGV.reject { |o| /^-\w+\S*|^--[-\w]+(?:=\S+)$/.match(o) } + numeric_options
+REMAINING_ARGS = ARGV.reject { |o| /^-\w+\S*$|^--\w+$|^--\w+(?:=\S+)$/.match(o) } + numeric_options
 OPTIONS = @options
+
 
 VERBOSE = OPTIONS[:verbose]
 AUTO_VERBOSE = if (OPTIONS[:auto_verbose_seconds]).positive?
@@ -208,7 +208,6 @@ puts 'Running in Verbose Test mode.' if VERBOSE_TEST
 DEBUG = OPTIONS[:debug]
 
 SCREEN_WIDTH = (ENV['COLUMNS'] || `tput cols`.chomp || 80).to_i
-
 INPUT = REMAINING_ARGS.size.positive? ? REMAINING_ARGS.shift : nil
 
 START = Time.now.to_i
