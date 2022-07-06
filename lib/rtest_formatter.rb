@@ -152,7 +152,7 @@ class Failure
   # this is a... sub-optimal test.
   # I just don't have a better idea yet
   def line_is_path?(line)
-    line.split(File::SEPARATOR).size > 1 && %r{^\s*\.?/}.match(line)
+    !! (line.split(File::SEPARATOR).size > 1 && %r{^\s*\.?/}.match(line))
   end
 
   def process_backtrace(notification_backtrace)
@@ -195,23 +195,33 @@ class Failure
   end
 
   def simple_message_extraction(lines)
+    in_syntax_error = false
     lines.each do |line|
       unescaped_line = unescape(line)
       components = message_line_components(unescaped_line)
-      message_line_assignment_by_prefix(components, line)
+      result = message_line_assignment_by_prefix(components, line, in_syntax_error)
+      in_syntax_error = (result == :syntax ? true : false)
     end
   end
 
-  def message_line_assignment_by_prefix(components, line)
+  def message_line_assignment_by_prefix(components, line, in_syntax_error = false)
     unescaped_line = unescape(line)
     return false if unescaped_line.strip.empty?
 
     did_something = false
     #                    key-v  value-v
     components.each do |prefix, content|
-      if prefix == 'Failure/Error'
+      if in_syntax_error
+        if line_is_path?(prefix)
+          add_meta_backtrace_line(prefix)
+          did_something = true
+        end
+      elsif prefix == 'Failure/Error'
         description << content
         did_something = true
+      elsif prefix == 'SyntaxError'
+        description << prefix
+        did_something = :syntax
       elsif prefix == 'expected'
         self.expected = content
         did_something = true
@@ -327,15 +337,28 @@ class Failure
   end
 
   def extract_failure_location(lines)
-    lines.each do |line|
-      m = /(.*(?<!_spec).rb):(\d+):in.*?`(.*)'/.match(line)
-      next unless m
+    syntax_error = description.any?{|x| x == 'SyntaxError'}
 
-      self.error_file_path   = m[1]
-      self.error_line_number = m[2]
-      self.error_method      = m[3]
-      break
+    lines.each do |line|
+      if ! syntax_error
+        m = /(.*(?<!_spec)\.rb):(\d+):in.*?`(.*)'/.match(line)
+        next unless m
+
+        self.error_file_path   = m[1]
+        self.error_line_number = m[2]
+        self.error_method      = m[3]
+        break
+      else
+        m = /(.*\.rb):(\d+)/.match(line) # it could be in a spec file
+        next unless m
+
+        self.error_file_path   = m[1]
+        self.error_line_number = m[2]
+        self.error_method      = "SYNTAX ERROR"
+        break
+      end
     end
+
   end
 end
 
