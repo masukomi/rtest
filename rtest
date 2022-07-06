@@ -155,7 +155,13 @@ options_parser = OptionParser.new do |parser|
   end
 
   parser.on('--rspec=NUMBER', 'outputs the command to run the specified test in rspec') do |number|
-    @options[:rspec] = number.to_i
+    if /^\d+$/.match(number)
+      @options[:rspec] = number.to_i
+    elsif number == 'all'
+      @options[:rspec] = 'all'
+    else
+      raise(OptionParser::InvalidArgument, "#{number}: is not a valid argument for --rspec")
+    end
   end
   # 🤫 ssssh secret. Just for us rtest devs.
   parser.on('--fspec',
@@ -193,7 +199,6 @@ rescue OptionParser::InvalidOption => e
 end
 REMAINING_ARGS = ARGV.reject { |o| /^-\w+\S*$|^--\w+$|^--\w+(?:=\S+)$/.match(o) } + numeric_options
 OPTIONS = @options
-
 
 VERBOSE = OPTIONS[:verbose]
 AUTO_VERBOSE = if (OPTIONS[:auto_verbose_seconds]).positive?
@@ -296,10 +301,13 @@ elsif /.*_spec.rb(:\d+)?$/.match(INPUT) \
       warn('Please try again with a valid path.')
       exit 64 # EX_USAGE
     end
-    if !OPTIONS[:fspec]
+    if !OPTIONS[:fspec] && !OPTIONS[:rspec]
       puts "Running specs in #{INPUT}\n"
       # must be a spec file
       updated_run_data = Rtest::Runner.run_and_display_this(INPUT, true)
+    elsif OPTIONS[:rspec]
+      puts Rtest::Runner.rspec_command(INPUT)
+      exit 0
     else
       puts Rtest::Runner.fspec_command(INPUT)
       exit 0
@@ -314,13 +322,21 @@ elsif /.*_spec.rb(:\d+)?$/.match(INPUT) \
       warn('🤨 Unable to find spec file amongst past failures. ')
       exit 1
     end
-    puts "Running #{last_file}...\n"
-    updated_run_data = Rtest::Rerunner.new(past_run_data).rerun_last_file(persist: true)
-    # rerunner will take care of mentioning fixed tests
+    if ! OPTIONS[:rspec]
+      puts "Running #{last_file}...\n"
+      updated_run_data = Rtest::Rerunner.new(past_run_data).rerun_last_file(persist: true)
+      # rerunner will take care of mentioning fixed tests
+    else
+      puts Rtest::Runner.rspec(last_file)
+      exit 0
+    end
   elsif INPUT == 'all'
-    if !OPTIONS[:fspec]
+    if !OPTIONS[:fspec] && !OPTIONS[:rspec]
       puts "Running ALL specs...\n"
       updated_run_data = Rtest::Runner.run_and_display_this('', true)
+    elsif OPTIONS[:rspec]
+      puts Rtest::Runner.rspec_command('')
+      exit 0
     else
       puts Rtest::Runner.fspec_command('')
       exit 0
