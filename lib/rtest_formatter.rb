@@ -392,6 +392,10 @@ class Message < Failure
     incorporate_meta_backtrace
     extract_failure_location(self.backtrace)
   end
+
+  def just_run_options?
+    return failure_notes.first.start_with?("Run options:")
+  end
 end
 class RtestFormatter
   # rspec 3.11 docs for making them
@@ -414,7 +418,8 @@ class RtestFormatter
     @failures = []
   end
   def message(notification)
-    @failures << Message.new(notification)
+    m = Message.new(notification)
+    @failures << m unless m.just_run_options?
   end
   # called if the example fails
   # notification: FailedExampleNotification
