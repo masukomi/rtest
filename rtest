@@ -105,13 +105,9 @@ USAGE = <<~EOL
       Truncates file paths to fit the screen width if possible.
       Guaranteed to always leave the basename intact.
 
-    rtest [--rspec=NUMBER]
-      outputs the rspec command required to rerun the
-      specified failure in rspec.
-
-      In fish shell, for example, you could say
-        eval (rtest --rspec=4)
-      to run failure #4 in rspec directly.
+    rtest [--rspec]
+      instructs rtest to output the rspec command
+      required to run the specified test
 
     VERBOSE MODE
 
@@ -154,14 +150,8 @@ options_parser = OptionParser.new do |parser|
     @options[:auto_verbose_seconds] = s.to_i
   end
 
-  parser.on('--rspec=NUMBER', 'outputs the command to run the specified test in rspec') do |number|
-    if /^\d+$/.match(number)
-      @options[:rspec] = number.to_i
-    elsif number == 'all'
-      @options[:rspec] = 'all'
-    else
-      raise(OptionParser::InvalidArgument, "#{number}: is not a valid argument for --rspec")
-    end
+  parser.on('--rspec', 'outputs the command to run the specified test in rspec') do
+    @options[:rspec] = true
   end
   # 🤫 ssssh secret. Just for us rtest devs.
   parser.on('--fspec',
@@ -329,7 +319,7 @@ elsif /.*_spec.rb(:\d+)?$/.match(INPUT) \
       # this will either output "fixed" messages or errors
       # but never "no failures"
     else
-      puts Rtest::Runner.rspec(last_file)
+      puts Rtest::Runner.rspec_command(last_file)
       exit 0
     end
   elsif INPUT == 'all'
@@ -345,27 +335,20 @@ elsif /.*_spec.rb(:\d+)?$/.match(INPUT) \
     end
   end
 elsif /^\d+$/.match(INPUT) || OPTIONS[:rspec]
-  failure_number = OPTIONS[:rspec] || INPUT.to_i
+  failure_number = INPUT.to_i
   offset = REMAINING_ARGS.size.positive? ? REMAINING_ARGS[0].to_i : 0
   # NOTE: display happens during rerun
   failure = past_run_data.get_failure_by_number(failure_number)
   if !failure.nil?
     failure.offset = offset
-    if !OPTIONS[:rspec]
-      Rtest::Rerunner.new(past_run_data).rerun(failure_number, persist: true)
-    else
-      # we can't run it ourselves or we'll hang on byebug or
-      # binding.pry lines
-      #
-      # we _could_ do it the way we do the other interactive stuff
-      # but the idea here was to make it trivial to rerun something in
-      # rspec directly
-      if !OPTIONS[:fspec]
+    if OPTIONS[:rspec]
         puts Rtest::Runner.rspec_command(failure.rspec_arg)
-      else
+        exit 0
+    elsif OPTIONS[:fspec]
         puts Rtest::Runner.fspec_command(failure.rspec_arg)
-      end
-      exit 0
+        exit 0
+    else
+      Rtest::Rerunner.new(past_run_data).rerun(failure_number, persist: true)
     end
   else
     invalid_failure_number_error(past_run_data.failure_numbers)
