@@ -215,6 +215,9 @@ class Failure
         if line_is_path?(prefix)
           add_meta_backtrace_line(prefix)
           did_something = true
+        else
+          failure_notes << line
+          did_something = true
         end
       elsif prefix == 'Failure/Error'
         description << content
