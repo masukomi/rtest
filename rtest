@@ -281,6 +281,7 @@ end
 if INPUT.nil? && !OPTIONS[:rspec]
   display_run_log(past_run_data)
   puts NO_TESTS_RUN_TEXT
+  puts "    #{past_run_data.failure_count} failure(s)"
 elsif /.*_spec.rb(:\d+)?$/.match(INPUT) \
   || INPUT == 'all' \
   || INPUT == 'last_file' \
