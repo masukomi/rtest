@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative "common"
-require_relative "../constants"
-require_relative "print_helpers"
+require_relative 'common'
+require_relative '../constants'
+require_relative 'print_helpers'
 
 module Rtest
   class FailurePrinter
@@ -16,13 +16,12 @@ module Rtest
     def self.display_failures(failures)
       if failures.size.positive?
         failures.each_with_index do |failure, idx|
-            FailurePrinter.print(failure, idx)
+          FailurePrinter.print(failure, idx)
         end
       else
         puts NO_FAILURES_TEXT
       end
     end
-
 
     attr_accessor :failure, :potential_display_number
 
@@ -77,6 +76,7 @@ module Rtest
 
     def printable_failure_notes(failure)
       displayable_list = VERBOSE ? failure.failure_notes : failure.failure_notes[0..9]
+      displayable_list = displayable_list.map { |note| note.split(/\\n/) }.flatten
       displayable_list = truncate_long_lines(displayable_list)
       path_lines_truncator("\t#{FAILURE_NOTE_LINE_COLOR}",
                            displayable_list.map { |x| "\t#{COLOR_RESET}▷ #{x}" },
