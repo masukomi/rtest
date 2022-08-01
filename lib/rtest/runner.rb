@@ -133,14 +133,20 @@ module Rtest
         before_rtest_json = true
         json_lines = []
         output.split(/\r\n|\n/).each do |line|
-        if before_rtest_json && line == "BEGIN_RTEST_JSON"
+          if before_rtest_json && line == "BEGIN_RTEST_JSON"
             before_rtest_json = false
             next
-        elsif before_rtest_json
+          elsif before_rtest_json
             next
-        else
+          else
             json_lines << line
+          end
         end
+        if before_rtest_json
+          STDERR.puts "\n\n⚠️  No Processable Data Returned from RSpec."
+          STDERR.puts "RSpec OUTPUT BELOW:\n"
+          STDERR.puts output
+          exit 0
         end
         RunLog.from_rspec_json(json_lines.join("\n"))
     end
