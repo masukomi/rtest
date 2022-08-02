@@ -152,7 +152,7 @@ class Failure
   # this is a... sub-optimal test.
   # I just don't have a better idea yet
   def line_is_path?(line)
-    !! (line.split(File::SEPARATOR).size > 1 && %r{^\s*\.?/}.match(line))
+    !!(line.split(File::SEPARATOR).size > 1 && %r{^\s*\.?/}.match(line))
   end
 
   def process_backtrace(notification_backtrace)
@@ -180,8 +180,15 @@ class Failure
     lines = notification
             .colorized_message_lines # .map{ |line| unescape(line.sub(/^\s+/, '')) }
             .reject { |line| unescape(line).empty? }
+
     # sholud be [failure/error, expected, got, <optional comparison note>]
     # but i don't want to assume
+
+    if notification.example.metadata.key?(:execution_result) \
+        && notification.example.metadata[:execution_result].exception
+      failure_notes << notification.example.metadata[:execution_result].exception.class.to_s
+      failure_notes << notification.example.metadata[:execution_result].exception.message
+    end
 
     return false if lines.empty?
 
@@ -200,7 +207,7 @@ class Failure
       unescaped_line = unescape(line)
       components = message_line_components(unescaped_line)
       result = message_line_assignment_by_prefix(components, line, in_syntax_error)
-      in_syntax_error = (result == :syntax ? true : false)
+      in_syntax_error = (result == :syntax)
     end
   end
 
@@ -309,7 +316,7 @@ class Failure
       next if unescaped_line.strip.empty?
 
       components = message_line_components(unescaped_line)
-      has_expected_or_got  = (components.keys & %w[expected got]).size.positive?
+      has_expected_or_got = (components.keys & %w[expected got]).size.positive?
       if has_expected_or_got
         self.expected = components['expected'] if components.key? 'expected'
         self.got      = components['got']      if components.key? 'got'
@@ -321,7 +328,6 @@ class Failure
       elsif has_expected_or_got
         next
       end
-
 
       if in_backtrace
         if meta_backtrace_line?(unescaped_line)
@@ -340,10 +346,10 @@ class Failure
   end
 
   def extract_failure_location(lines)
-    syntax_error = description.any?{|x| x == 'SyntaxError'}
+    syntax_error = description.any? { |x| x == 'SyntaxError' }
 
     lines.each do |line|
-      if ! syntax_error
+      if !syntax_error
         m = /(.*(?<!_spec)\.rb):(\d+):in.*?`(.*)'/.match(line)
         next unless m
 
@@ -357,16 +363,14 @@ class Failure
 
         self.error_file_path   = m[1]
         self.error_line_number = m[2]
-        self.error_method      = "SYNTAX ERROR"
+        self.error_method      = 'SYNTAX ERROR'
         break
       end
     end
-
   end
 end
 
 class Message < Failure
-
   def initialize(notification)
     self.expected         = nil
     self.got              = nil
@@ -393,11 +397,11 @@ class Message < Failure
     message_lines = notification.message.split("\n")
     simple_message_extraction(message_lines)
     incorporate_meta_backtrace
-    extract_failure_location(self.backtrace)
+    extract_failure_location(backtrace)
   end
 
   def just_run_options?
-    return failure_notes.first.start_with?("Run options:")
+    failure_notes.first.start_with?('Run options:')
   end
 end
 class RtestFormatter
@@ -420,10 +424,12 @@ class RtestFormatter
     @output = output
     @failures = []
   end
+
   def message(notification)
     m = Message.new(notification)
     @failures << m unless m.just_run_options?
   end
+
   # called if the example fails
   # notification: FailedExampleNotification
   # http://www.rubydoc.info/gems/rspec-core/RSpec/Core/Notifications/FailedExampleNotification
