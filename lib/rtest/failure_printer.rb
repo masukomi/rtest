@@ -76,7 +76,7 @@ module Rtest
 
     def printable_failure_notes(failure)
       displayable_list = VERBOSE ? failure.failure_notes : failure.failure_notes[0..9]
-      displayable_list = displayable_list.map { |note| note.split(/\\n/) }.flatten
+      displayable_list = displayable_list.map { |note| note.split(/\\n|\n/) }.flatten
       displayable_list = truncate_long_lines(displayable_list)
       path_lines_truncator("\t#{FAILURE_NOTE_LINE_COLOR}",
                            displayable_list.map { |x| "\t#{COLOR_RESET}▷ #{x}" },
