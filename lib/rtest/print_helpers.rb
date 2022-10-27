@@ -2,6 +2,8 @@
 
 module Rtest
   module PrintHelpers
+    MAX_LINE_CHARS=1000.freeze
+
     def print_wrapped_test_name(color, display_number, test_name, first_line_prefix = '')
       name_lines = truncate_long_line(test_name)
       if name_lines.size == 1
@@ -26,6 +28,13 @@ module Rtest
 
       new_lines << line[0..split_on] + COLOR_RESET
       remainder = line[split_on..-1]
+
+      # turns out, rspec can return some _ridiculously_ long lines
+      if new_lines.map(&:length).sum > MAX_LINE_CHARS
+        new_lines << "…"
+        return newlines
+      end
+
       # if remainder.size > max
       if unescape(remainder).size > max && ! next_split_char(remainder, max).nil?
         new_lines += truncate_long_line(remainder, max)
