@@ -31,6 +31,8 @@
 require 'json'
 
 class Failure
+  MAX_NOTE_CHARS=1000.freeze
+
   # The regex to match ANSI codes
   # from https://github.com/piotrmurach/strings-ansi
   ANSI_MATCHER = %r{
@@ -99,6 +101,16 @@ class Failure
     returnable_lines[0..-2]
   end
 
+  def filtered_failure_notes
+    failure_notes.map{ |note|
+      if note.size <= MAX_NOTE_CHARS
+        note
+      else
+        note[0..MAX_NOTE_CHARS] + "…"
+      end
+    }
+  end
+
   def filterable_line?(line)
     line.include?('/lib/ruby/') \
       || line.include?('/bin/rspec') \
@@ -109,9 +121,10 @@ class Failure
   def to_json(*_args)
     hash = {}
     instance_variables.map { |x| x.to_s.sub('@', '').to_sym }.each do |method|
-      hash[method] = send(method) unless %i[meta_backtrace backtrace].include? method
+      hash[method] = send(method) unless %i[meta_backtrace backtrace failure_notes].include? method
     end
     hash[:backtrace] = filtered_backtrace
+    hash[:failure_notes] = filtered_failure_notes
 
     JSON.pretty_generate(hash)
   end
