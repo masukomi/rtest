@@ -106,8 +106,8 @@ USAGE = <<~EOL
       path/to/other_spec:44
 
     rtest [--summary]
-      outputs the name and the file+line number of
-      the failing tests.
+      limits output to the failure name, the file+line number of
+      the failing tests, and the condensed backtrace.
 
       This is not compatable with "files".
 

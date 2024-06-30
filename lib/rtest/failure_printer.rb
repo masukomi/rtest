@@ -42,9 +42,9 @@ module Rtest
       unless self.options[:summary]
         puts "\t#{EXPECTED_LINE_COLOR}expected: #{failure.expected}#{COLOR_RESET}" if failure.expected
         puts "\t#{GOT_LINE_COLOR}got     : #{failure.got}#{COLOR_RESET}" if failure.got
-
-        puts printable_backtrace(failure.backtrace)
       end
+
+      puts printable_backtrace(failure.backtrace)
     end
 
     private
