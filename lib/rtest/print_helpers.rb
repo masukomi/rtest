@@ -45,6 +45,11 @@ module Rtest
         end
       end
       new_lines
+    rescue SystemStackError => e
+      # if only we had tail call optimiziation in ruby...
+      #
+      # lines is a known "good", while new_lines may be half-built
+      return lines
     end
 
     private

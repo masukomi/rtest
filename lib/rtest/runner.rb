@@ -8,7 +8,10 @@ module Rtest
   class Runner
     include Persisters
 
-    def self.run_and_display_this(spec, update_file, retries = 0)
+    def self.run_and_display_this(spec, update_file,
+        options: Persisters::DEFAULT_OPTIONS,
+        retries: 0
+        )
         runner = Runner.new()
         run_log = runner.run_this(spec, update_file, retries)
         runner.update_record_and_display(run_log)
@@ -138,6 +141,10 @@ module Rtest
             next
           elsif before_rtest_json
             next
+          elsif line == "END_RTEST_JSON"
+              # Sometimes things like SimpleCov spew data we don't want
+              # Sigh. This whole thing is such an ugly hack.
+              break
           else
             json_lines << line
           end

@@ -8,24 +8,25 @@ module Rtest
   class FailurePrinter
     include PrintHelpers
     include Rtest::Common
-    def self.print(failure, potential_display_number = -1)
-      f = FailurePrinter.new(failure, potential_display_number)
+    def self.print(failure, potential_display_number = -1, options = {})
+      f = FailurePrinter.new(failure, potential_display_number, options)
       f.begin
     end
 
-    def self.display_failures(failures)
+    def self.display_failures(failures, options = {})
       if failures.size.positive?
         failures.each_with_index do |failure, idx|
-          FailurePrinter.print(failure, idx)
+          FailurePrinter.print(failure, idx, options)
         end
       else
         puts NO_FAILURES_TEXT
       end
     end
 
-    attr_accessor :failure, :potential_display_number
+    attr_accessor :failure, :potential_display_number, :options
 
-    def initialize(failure, potential_display_number = -1)
+    def initialize(failure, potential_display_number = -1, options = {})
+      self.options = {summary: false}.merge(options)
       self.failure = failure
       self.potential_display_number = potential_display_number
     end
@@ -33,15 +34,17 @@ module Rtest
     def begin
       print_description(failure, potential_display_number + 1)
 
-      puts printable_failure_notes(failure) if failure.has_notes?
+      puts printable_failure_notes(failure) if failure.has_notes? and ! self.options[:summary]
       puts ''
 
       puts printable_file_and_line_num(failure)
 
-      puts "\t#{EXPECTED_LINE_COLOR}expected: #{failure.expected}#{COLOR_RESET}" if failure.expected
-      puts "\t#{GOT_LINE_COLOR}got     : #{failure.got}#{COLOR_RESET}" if failure.got
+      unless self.options[:summary]
+        puts "\t#{EXPECTED_LINE_COLOR}expected: #{failure.expected}#{COLOR_RESET}" if failure.expected
+        puts "\t#{GOT_LINE_COLOR}got     : #{failure.got}#{COLOR_RESET}" if failure.got
 
-      puts printable_backtrace(failure.backtrace)
+        puts printable_backtrace(failure.backtrace)
+      end
     end
 
     private
@@ -55,7 +58,7 @@ module Rtest
 
       print_wrapped_test_name(ERROR_LINE_COLOR, display_number, failure.test_name)
 
-      if failure.description.size > 1
+      if failure.description.size > 1 and ! self.options[:summary]
         # well crap. We're dealing with something like this
         # [
         #   "expect do",

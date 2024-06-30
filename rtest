@@ -56,6 +56,11 @@ USAGE = <<~EOL
       re-run a specific failure from the last test
       as identified by its number
 
+    rtest show <n>
+      re-display the failure information from
+      the specified test number WITHOUT rerunning
+      the test.
+
     rtest <n> +/-<x>
       re-run a specific failure from the last test
       as identified by its number
@@ -99,6 +104,12 @@ USAGE = <<~EOL
       path/to/failing_spec:43
       path/to/failing_spec:68
       path/to/other_spec:44
+
+    rtest [--summary]
+      outputs the name and the file+line number of
+      the failing tests.
+
+      This is not compatable with "files".
 
     rtest [-s | --shortened]
       Can be combined with out options.
@@ -167,10 +178,19 @@ options_parser = OptionParser.new do |parser|
     @options[:files] = true
   end
 
+  parser.on('--summary', 'show failing test names plus their file and line') do
+    @options[:summary] = true
+  end
+
   parser.on('-h', '--help') do
     puts USAGE
     exit 0
   end
+end
+if @options[:files] && @options[:summary]
+  puts "--files/files && --summary are not compatabible."
+  puts "\n#{USAGE}"
+  exit
 end
 
 numeric_options = ARGV.select { |o| /^-?\d+$/.match(o) }
@@ -187,6 +207,12 @@ rescue OptionParser::InvalidOption => e
   puts USAGE
   exit 75 # EX_TEMPFAIL (user input)
 end
+
+# throwing out the arg stuff
+# reject any arg that is
+# * a single hyphen followed by some word characters followed by some NON whitespace characters
+# * a double hyphen followed by some word characters and nothing else
+# * a double hyphen followed by an equals followed by some non-whitespace characters and nothing else
 REMAINING_ARGS = ARGV.reject { |o| /^-\w+\S*$|^--\w+$|^--\w+(?:=\S+)$/.match(o) } + numeric_options
 OPTIONS = @options
 
@@ -241,7 +267,7 @@ end
 
 def display_run_log(run_log)
   if run_log.has_failures?
-    Rtest::FailurePrinter.display_failures(run_log.failures)
+    Rtest::FailurePrinter.display_failures(run_log.failures, OPTIONS)
   else
     puts 'No past failure data. Please run a spec through me.'
   end
@@ -282,20 +308,24 @@ if INPUT.nil? && !OPTIONS[:rspec]
   display_run_log(past_run_data)
   puts NO_TESTS_RUN_TEXT
   puts "    #{past_run_data.failure_count} failure(s)"
+
+# have we been passed a spec file to run?
 elsif /.*_spec.rb(:\d+)?$/.match(INPUT) \
   || INPUT == 'all' \
   || INPUT == 'last_file' \
   || %r{\S+/$}.match(INPUT) # ends with a slash, prolly a directory
   if INPUT != 'all' && INPUT != 'last_file'
+    # make sure we actually have a record to read
     unless File.exist?(INPUT.sub(/:\d+$/, ''))
       warn("Could not find specified file or directory:\n#{INPUT}")
       warn('Please try again with a valid path.')
       exit 64 # EX_USAGE
     end
+
     if !OPTIONS[:fspec] && !OPTIONS[:rspec]
       puts "Running specs in #{INPUT}\n"
       # must be a spec file
-      Rtest::Runner.run_and_display_this(INPUT, true)
+      Rtest::Runner.run_and_display_this(INPUT, true, options: OPTIONS)
     elsif OPTIONS[:rspec]
       puts Rtest::Runner.rspec_command(INPUT)
       exit 0
@@ -326,7 +356,7 @@ elsif /.*_spec.rb(:\d+)?$/.match(INPUT) \
   elsif INPUT == 'all'
     if !OPTIONS[:fspec] && !OPTIONS[:rspec]
       puts "Running ALL specs...\n"
-      Rtest::Runner.run_and_display_this('', true)
+      Rtest::Runner.run_and_display_this('', true, options: OPTIONS)
     elsif OPTIONS[:rspec]
       puts Rtest::Runner.rspec_command('')
       exit 0
@@ -335,6 +365,20 @@ elsif /.*_spec.rb(:\d+)?$/.match(INPUT) \
       exit 0
     end
   end
+
+# have we been passed the number of a failing test
+# to re-display the failure info on.
+elsif INPUT == 'show' &&  /^\d+$/.match(REMAINING_ARGS[0].to_s)
+  failure_number = REMAINING_ARGS[0].to_i
+  failure = past_run_data.get_failure_by_number(failure_number)
+  if !failure.nil?
+    Rtest::FailurePrinter.print(failure, failure_number, OPTIONS)
+  else
+    invalid_failure_number_error(past_run_data.failure_numbers)
+  end
+# Have we been passed the number of a failing
+# test we reportedf on before?
+
 elsif /^\d+$/.match(INPUT) || OPTIONS[:rspec]
   failure_number = INPUT.to_i
   offset = REMAINING_ARGS.size.positive? ? REMAINING_ARGS[0].to_i : 0

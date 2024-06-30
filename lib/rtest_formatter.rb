@@ -471,6 +471,8 @@ class RtestFormatter
   # notification: NullNotification http://www.rubydoc.info/gems/rspec-core/RSpec/Core/Notifications/NullNotification
   def close(_)
     @output << 'BEGIN_RTEST_JSON'
-    @output << "\n[\n#{@failures.map(&:to_json).join(",\n")}\n]"
+    @output << "\n[\n#{@failures.map(&:to_json).join(",\n")}\n]\n"
+    @output << "END_RTEST_JSON\n"
+
   end
 end

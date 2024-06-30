@@ -36,11 +36,13 @@ module Rtest
 
     # rerun all past failures
     def rerun_all(options=DEFAULT_OPTIONS)
+      options = merge_default_options(options)
       rerun(run_log.failure_numbers, options)
     end
 
     # rerun one past failure
     def rerun(numbers, options=DEFAULT_OPTIONS)
+      options = merge_default_options(options)
       numbers = Array(numbers)
       # iterate over each failure,
       # pass it to be rerun
@@ -66,7 +68,7 @@ module Rtest
 
               new_failure.display_number = display_counter
               new_run_log.failures << new_failure
-              FailurePrinter.print(new_failure, new_failure.display_number)
+              FailurePrinter.print(new_failure, new_failure.display_number, options)
             end
           else
             fixed_failure_message(failure)
@@ -81,6 +83,7 @@ module Rtest
     end
 
     def rerun_last_file(options=DEFAULT_OPTIONS)
+      options = merge_default_options(options)
       last_file = run_log.last_file
       failure_numbers = run_log.failures_in_file(last_file).map(&:display_number)
       rerun(failure_numbers, options)
