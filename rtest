@@ -190,7 +190,7 @@ end
 if @options[:files] && @options[:summary]
   puts "--files/files && --summary are not compatabible."
   puts "\n#{USAGE}"
-  exit
+  exit 64 # EX_USAGE
 end
 
 numeric_options = ARGV.select { |o| /^-?\d+$/.match(o) }
