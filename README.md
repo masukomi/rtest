@@ -29,6 +29,8 @@ Things you can do with RTest:
     help you.
 * quickly see a numbered list of what failed on your last run
   - `rtest`
+* quickly see the details of a past failure without rerunning it
+  - `rtest show <n>`
 * trivially rerun a past failure
   - `rtest <n>` where `n` is the number of the failed test
 * trivially rerun all the past failures (and nothing else)
