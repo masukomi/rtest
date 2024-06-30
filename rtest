@@ -345,7 +345,7 @@ elsif /.*_spec.rb(:\d+)?$/.match(INPUT) \
     end
     if ! OPTIONS[:rspec]
       puts "Running #{last_file}...\n"
-      Rtest::Rerunner.new(past_run_data).rerun_last_file(persist: true)
+      Rtest::Rerunner.new(past_run_data).rerun_last_file(OPTIONS.merge({persist: true}))
       # rerunner will take care of mentioning fixed tests
       # this will either output "fixed" messages or errors
       # but never "no failures"
@@ -356,7 +356,8 @@ elsif /.*_spec.rb(:\d+)?$/.match(INPUT) \
   elsif INPUT == 'all'
     if !OPTIONS[:fspec] && !OPTIONS[:rspec]
       puts "Running ALL specs...\n"
-      Rtest::Runner.run_and_display_this('', true, options: OPTIONS)
+      Rtest::Runner.run_and_display_this('', true,
+                                         options: OPTIONS.merge(Rtest::Persisters::DEFAULT_OPTIONS))
     elsif OPTIONS[:rspec]
       puts Rtest::Runner.rspec_command('')
       exit 0
@@ -393,7 +394,7 @@ elsif /^\d+$/.match(INPUT) || OPTIONS[:rspec]
         puts Rtest::Runner.fspec_command(failure.rspec_arg)
         exit 0
     else
-      Rtest::Rerunner.new(past_run_data).rerun(failure_number, persist: true)
+      Rtest::Rerunner.new(past_run_data).rerun(failure_number, OPTIONS.merge({persist: true}))
     end
   else
     invalid_failure_number_error(past_run_data.failure_numbers)

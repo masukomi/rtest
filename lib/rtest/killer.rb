@@ -1,13 +1,11 @@
 # frozen_string_literal: true
 
 require_relative "common"
-require_relative "persisters"
 
 
 module Rtest
   class Killer
     include Common
-    include Persisters
     # returns a new array of failures
     # without the killable ones.
     def self.cull_failures(failures)
@@ -35,12 +33,12 @@ module Rtest
     def self.kill(run_log, numbers)
       mark_for_death(run_log, numbers) # mutates failures in log
       # NOTE: honestly unsure if renumber should be true or false here.
-      Killer.new().update_record(run_log, renumber: true)
+      Rtest::Persisters::update_record(run_log, renumber: true)
     end
     def self.kill_and_display(run_log, numbers)
       mark_for_death(run_log, numbers) # mutates failures in log
       # NOTE: honestly unsure if renumber should be true or false here.
-      Killer.new().update_record_and_display(run_log, renumber: true)
+      Rtest::Persisters::update_record_and_display(run_log, renumber: true)
     end
   end
 end

@@ -28,7 +28,7 @@ module Rtest
 
     DEFAULT_OPTIONS={persist: false}
 
-    attr_accessor :run_log
+    attr_accessor :run_log, :options
 
     def initialize(run_log)
       self.run_log = run_log

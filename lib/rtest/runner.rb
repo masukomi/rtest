@@ -14,7 +14,7 @@ module Rtest
         )
         runner = Runner.new()
         run_log = runner.run_this(spec, update_file, retries)
-        runner.update_record_and_display(run_log)
+        runner.update_record_and_display(run_log, options)
     end
 
     def self.run_this(spec, update_file, retries = 0)
